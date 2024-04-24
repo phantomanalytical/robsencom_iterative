@@ -12,6 +12,22 @@ def user_input(prompt, options=None):
         print("Invalid option. Please try again.")
         user_choice = input(prompt)
     return user_choice
+    
+def set_device_settings(lora_comm, address):
+    """ Sets the initial LoRa device settings using the provided address. """
+    lora_comm.lora.set(
+        freq=lora_comm.lora.freq,
+        addr=address,
+        power=lora_comm.lora.power,
+        rssi=lora_comm.lora.rssi,
+        air_speed=lora_comm.lora.air_speed,
+        net_id=0,
+        buffer_size=240,
+        crypt=0,
+        relay=False,
+        lbt=False,
+        wor=False
+    )
 
 def perform_transmission(lora_comm, power, spreading_factor, file_path):
     """ Send an image file with specific power and spreading factor, and measure latency. """

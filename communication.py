@@ -10,7 +10,7 @@ class LoRaComm:
     def send_data(self, data):
         self.lora.send(data)
 
-    def receive_data(self, timeout=10):
+    def receive_data(self, timeout=30):
         start_time = time.time()
         while time.time() - start_time < timeout:
             data = self.lora.receive()
