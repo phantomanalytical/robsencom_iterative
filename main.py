@@ -73,8 +73,9 @@ def save_results(results, parameter):
     print(f"Results saved to {filename}.")
 
 def main():
-    address = int(load_address() or save_address())
+    address = int(user_input("Enter the LoRa address: "))
     lora_comm = LoRaComm(address)
+    set_device_settings(lora_comm, address)
 
     choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
     if choice == 'send':
