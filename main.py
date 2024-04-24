@@ -59,18 +59,32 @@ def save_results(results, parameter):
 def main():
     address = int(load_address() or save_address())
     lora_comm = LoRaComm(address)
-    file_path = user_input("Enter the path to the image file: ")
-    file_path, file_size = get_file_info(file_path)
 
-    if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
-        power_settings = [22, 17, 13, 10]  # Define power settings
-        results = iterative_test(lora_comm, file_path, 'power', power_settings)
-        save_results(results, 'power')
+    choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
+    if choice == 'send':
+        file_path = user_input("Enter the path to the image file: ")
+        file_path, file_size = get_file_info(file_path)
 
-    if user_input("Iterate through spreading factor settings? (yes/no): ", ['yes', 'no']) == 'yes':
-        spreading_factors = [1200, 2400, 4800, 9600, 19200, 38400, 62500]  # Define spreading factors
-        results = iterative_test(lora_comm, file_path, 'spreading_factor', spreading_factors)
-        save_results(results, 'spreading_factor')
+        if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
+            power_settings = [22, 17, 13, 10]  # Define your power settings
+            results = iterative_test(lora_comm, file_path, 'power', power_settings)
+            save_results(results, 'power')
+
+        if user_input("Iterate through spreading factor settings? (yes/no): ", ['yes', 'no']) == 'yes':
+            spreading_factors = [1200, 2400, 4800, 9600]  # Define your spreading factors
+            results = iterative_test(lora_comm, file_path, 'spreading_factor', spreading_factors)
+            save_results(results, 'spreading_factor')
+    elif choice == 'receive':
+        print("Device set to receive mode.")
+        while True:
+            data = lora_comm.receive_data()
+            if data:
+                print("Data received.")
+                # Here you can add logic to handle or save the received data
+                break
+            else:
+                if user_input("No data received. Would you like to remain in receive mode? (yes/no): ", ['yes', 'no']) == 'no':
+                    break
 
 if __name__ == "__main__":
     main()
