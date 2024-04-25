@@ -80,11 +80,18 @@ class sx126x:
     def __init__(self,serial_num,freq,addr,power,rssi,air_speed=2400,\
                  net_id=0,buffer_size = 240,crypt=0,\
                  relay=False,lbt=False,wor=False):
-        self.rssi = rssi
-        self.addr = addr
-        self.freq = freq
         self.serial_n = serial_num
+        self.freq = freq
+        self.addr = addr
         self.power = power
+        self.rssi = rssi
+        self.air_speed = air_speed
+        self.net_id = net_id
+        self.buffer_size = buffer_size
+        self.crypt = crypt
+        self.relay = relay
+        self.lbt = lbt
+        self.wor = wor
         # Initial the GPIO for M0 and M1 Pin
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -101,7 +108,7 @@ class sx126x:
     def update_address(self, new_addr):
         if new_addr != self.addr:
             self.addr = new_addr
-            self.set(self.freq, self.addr, self.power, self.rssi, self.air_speed, self.crypt)
+            self.set(self.freq, self.addr, self.power, self.rssi, self.air_speed, self.net_id, self.buffer_size, self.crypt if hasattr(self, 'crypt') else 0, self.relay, self.lbt, self.wor)
 
     def set(self,freq,addr,power,rssi,air_speed=2400,\
             net_id=0,buffer_size = 240,crypt=0,\
