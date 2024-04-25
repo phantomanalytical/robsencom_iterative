@@ -239,28 +239,28 @@ class sx126x:
 
 
     def send(self, data):
-    max_packet_size = 240  # LoRa typical packet size limit, adjust as needed
-    num_packets = len(data) // max_packet_size + (len(data) % max_packet_size > 0)
-    for i in range(num_packets):
-        start_index = i * max_packet_size
-        end_index = start_index + max_packet_size
-        packet = data[start_index:end_index]
-        self.ser.write(packet)
-        time.sleep(0.1)  # Short delay to ensure packet delivery before the next one
+        max_packet_size = 240  # LoRa typical packet size limit, adjust as needed
+        num_packets = len(data) // max_packet_size + (len(data) % max_packet_size > 0)
+        for i in range(num_packets):
+            start_index = i * max_packet_size
+            end_index = start_index + max_packet_size
+            packet = data[start_index:end_index]
+            self.ser.write(packet)
+            time.sleep(0.1)  # Short delay to ensure packet delivery before the next one
     
     def receive(self):
-    received_data = bytearray()
-    start_time = time.time()
-    timeout = 120  # Set a reasonable timeout for receiving data, e.g., 2 minutes
+        received_data = bytearray()
+        start_time = time.time()
+        timeout = 120  # Set a reasonable timeout for receiving data, e.g., 2 minutes
 
-    while True:
-        if self.ser.in_waiting > 0:
-            received_data += self.ser.read(self.ser.in_waiting)
-        if time.time() - start_time > timeout:
-            break  # Exit if the timeout is reached
-        time.sleep(0.1)  # Slight delay to allow data to accumulate in the input buffer
+        while True:
+            if self.ser.in_waiting > 0:
+                received_data += self.ser.read(self.ser.in_waiting)
+            if time.time() - start_time > timeout:
+                break  # Exit if the timeout is reached
+            time.sleep(0.1)  # Slight delay to allow data to accumulate in the input buffer
 
-    return bytes(received_data)  # Return the complete byte array
+        return bytes(received_data)  # Return the complete byte array
 
 
     def get_channel_rssi(self):
