@@ -8,7 +8,7 @@ class LoRaComm:
         self.lora = sx126x(serial_num=serial_num, freq=freq, addr=address, power=power, rssi=rssi)
         
     def update_address(self, new_address):
-        self.device.update_address(new_address)  # Dynamically update the address
+        self.lora.update_address(new_address)  # Dynamically update the address
 
     def send_data(self, data):
         self.lora.send(data)
