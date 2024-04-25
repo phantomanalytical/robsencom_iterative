@@ -74,8 +74,11 @@ def save_results(results, parameter):
 
 def main():
     address = int(user_input("Enter the LoRa address: "))
-    lora_comm = LoRaComm(address)
-    set_device_settings(lora_comm, address)
+    # Initialize LoRaComm, possibly without the address or with a default one
+    lora_comm = LoRaComm()  # Assuming you can modify LoRaComm to handle no initial address
+    lora_comm.update_address(address)  # Update the address immediately after initialization
+
+    set_device_settings(lora_comm, address)  # Assuming this sets up other parameters
 
     choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
     if choice == 'send':
@@ -97,7 +100,6 @@ def main():
             data = lora_comm.receive_data()
             if data:
                 print("Data received.")
-                # Here you can add logic to handle or save the received data
                 break
             else:
                 if user_input("No data received. Would you like to remain in receive mode? (yes/no): ", ['yes', 'no']) == 'no':
