@@ -101,8 +101,7 @@ class sx126x:
     def update_address(self, new_addr):
         if new_addr != self.addr:
             self.addr = new_addr
-            self.set(self.freq, self.addr, self.power, self.rssi, self.air_speed,
-                     self.net_id, self.buffer_size, self.crypt, self.relay, self.lbt, self.wor)
+            self.set(self.freq, self.addr, self.power, self.rssi, self.air_speed, self.buffer_size, self.crypt, self.relay, self.lbt, self.wor)
 
     def set(self,freq,addr,power,rssi,air_speed=2400,\
             net_id=0,buffer_size = 240,crypt=0,\
