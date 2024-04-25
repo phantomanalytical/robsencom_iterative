@@ -237,37 +237,31 @@ class sx126x:
             print("Power is {0} dBm" + lora_power_dic.get(None,power_temp))
             GPIO.output(M1,GPIO.LOW)
 
-#
-# the data format like as following
-# "node address,frequence,payload"
-# "20,868,Hello World"
-    def send(self,data):
-        GPIO.output(self.M1,GPIO.LOW)
-        GPIO.output(self.M0,GPIO.LOW)
-        time.sleep(0.1)
 
-        self.ser.write(data)
-        # if self.rssi == True:
-            # self.get_channel_rssi()
-        time.sleep(0.1)
-
-
+    def send(self, data):
+    max_packet_size = 240  # LoRa typical packet size limit, adjust as needed
+    num_packets = len(data) // max_packet_size + (len(data) % max_packet_size > 0)
+    for i in range(num_packets):
+        start_index = i * max_packet_size
+        end_index = start_index + max_packet_size
+        packet = data[start_index:end_index]
+        self.ser.write(packet)
+        time.sleep(0.1)  # Short delay to ensure packet delivery before the next one
+    
     def receive(self):
-        if self.ser.inWaiting() > 0:
-            time.sleep(0.5)
-            r_buff = self.ser.read(self.ser.inWaiting())
+    received_data = bytearray()
+    start_time = time.time()
+    timeout = 120  # Set a reasonable timeout for receiving data, e.g., 2 minutes
 
-            print("receive message from node address with frequence\033[1;32m %d,%d.125MHz\033[0m"%((r_buff[0]<<8)+r_buff[1],r_buff[2]+self.start_freq),end='\r\n',flush = True)
-            print("message is "+str(r_buff[3:-1]),end='\r\n')
-            
-            # print the rssi
-            if self.rssi:
-                # print('\x1b[3A',end='\r')
-                print("the packet rssi value: -{0}dBm".format(256-r_buff[-1:][0]))
-                self.get_channel_rssi()
-            else:
-                pass
-                #print('\x1b[2A',end='\r')
+    while True:
+        if self.ser.in_waiting > 0:
+            received_data += self.ser.read(self.ser.in_waiting)
+        if time.time() - start_time > timeout:
+            break  # Exit if the timeout is reached
+        time.sleep(0.1)  # Slight delay to allow data to accumulate in the input buffer
+
+    return bytes(received_data)  # Return the complete byte array
+
 
     def get_channel_rssi(self):
         GPIO.output(self.M1,GPIO.LOW)
