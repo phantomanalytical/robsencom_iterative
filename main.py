@@ -1,7 +1,6 @@
 import csv
 import os
 import time
-from config_manager import save_address, load_address
 from communication import LoRaComm
 from file_manager import get_file_info, compress_file, decompress_file
 
@@ -12,7 +11,7 @@ def user_input(prompt, options=None):
         print("Invalid option. Please try again.")
         user_choice = input(prompt)
     return user_choice
-    
+
 def set_device_settings(lora_comm, address):
     """ Sets the initial LoRa device settings using the provided address. """
     lora_comm.lora.set(
@@ -74,16 +73,14 @@ def save_results(results, parameter):
 
 def main():
     address = int(user_input("Enter the LoRa address: "))
-    # Initialize LoRaComm, possibly without the address or with a default one
-    lora_comm = LoRaComm()  # Assuming you can modify LoRaComm to handle no initial address
-    lora_comm.update_address(address)  # Update the address immediately after initialization
+    lora_comm = LoRaComm(address=address)  # Adjusted for direct initialization with address
 
-    set_device_settings(lora_comm, address)  # Assuming this sets up other parameters
+    set_device_settings(lora_comm, address)  # Apply initial settings
 
     choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
     if choice == 'send':
         file_path = user_input("Enter the path to the image file: ")
-        file_path, file_size = get_file_info(file_path)
+        _, file_size = get_file_info(file_path)  # Assumes get_file_info returns path and file size
 
         if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
             power_settings = [22, 17, 13, 10]  # Define your power settings

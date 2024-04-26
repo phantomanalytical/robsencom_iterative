@@ -1,5 +1,3 @@
-# This file is used for LoRa and Raspberry pi4B related issues 
-
 import RPi.GPIO as GPIO
 import serial
 import time
@@ -251,29 +249,68 @@ class sx126x:
 
 
     def send(self, data):
-        max_packet_size = 240  # LoRa typical packet size limit, adjust as needed
+        max_packet_size = 240  # Maximum packet size that can be sent
         num_packets = len(data) // max_packet_size + (len(data) % max_packet_size > 0)
         for i in range(num_packets):
             start_index = i * max_packet_size
             end_index = start_index + max_packet_size
             packet = data[start_index:end_index]
             self.ser.write(packet)
-            time.sleep(0.1)  # Short delay to ensure packet delivery before the next one
-    
+            if not self.wait_for_ack():
+                print(f"Packet {i+1} failed, retrying...")
+                self.ser.write(packet)  # Retry sending the packet
+                if not self.wait_for_ack():
+                    print("Retry failed, moving to next packet")
+
+    def wait_for_ack(self):
+        start_time = time.time()
+        timeout = 5  # seconds
+        while time.time() - start_time < timeout:
+            if self.ser.in_waiting:
+                ack = self.ser.read(self.ser.in_waiting)
+                if ack == b'ACK':
+                    return True
+        return False
+
     def receive(self):
         received_data = bytearray()
         start_time = time.time()
-        timeout = 120  # Set a reasonable timeout for receiving data, e.g., 2 minutes
-
+        timeout = 120  # Timeout for receiving data
         while True:
             if self.ser.in_waiting > 0:
-                received_data += self.ser.read(self.ser.in_waiting)
+                data = self.ser.read(self.ser.in_waiting)
+                received_data += data
+                if data.endswith(b'END'):
+                    self.ser.write(b'ACK')
+                    break
             if time.time() - start_time > timeout:
-                break  # Exit if the timeout is reached
-            time.sleep(0.1)  # Slight delay to allow data to accumulate in the input buffer
+                break
+            time.sleep(0.1)
+        return bytes(received_data)
 
-        return bytes(received_data)  # Return the complete byte array
-
+    def get_settings(self):
+        # the pin M1 of lora HAT must be high when enter setting mode and get parameters
+        GPIO.output(M1,GPIO.HIGH)
+        time.sleep(0.1)
+        
+        # send command to get setting parameters
+        self.ser.write(bytes([0xC1,0x00,0x09]))
+        if self.ser.inWaiting() > 0:
+            time.sleep(0.1)
+            self.get_reg = self.ser.read(self.ser.inWaiting())
+        
+        # check the return characters from hat and print the setting parameters
+        if self.get_reg[0] == 0xC1 and self.get_reg[2] == 0x09:
+            fre_temp = self.get_reg[8]
+            addr_temp = self.get_reg[3] + self.get_reg[4]
+            air_speed_temp = self.get_reg[6] & 0x03
+            power_temp = self.get_reg[7] & 0x03
+            
+            print("Frequence is {0}.125MHz.",fre_temp)
+            print("Node address is {0}.",addr_temp)
+            print("Air speed is {0} bps"+ lora_air_speed_dic.get(None,air_speed_temp))
+            print("Power is {0} dBm" + lora_power_dic.get(None,power_temp))
+            GPIO.output(M1,GPIO.LOW)
 
     def get_channel_rssi(self):
         GPIO.output(self.M1,GPIO.LOW)
