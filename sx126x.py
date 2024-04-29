@@ -4,48 +4,42 @@ import time
 
 class sx126x:
 
-    M0 = 22
-    M1 = 27
-    cfg_reg = [0xC2,0x00,0x09,0x00,0x00,0x00,0x62,0x00,0x12,0x43,0x00,0x00]
+    def __init__(self, serial_num, freq, addr, power, rssi, air_speed=2400, net_id=0, buffer_size=240, crypt=0, relay=False, lbt=False, wor=False):
+        self.M0 = 22
+        self.M1 = 27
+        self.cfg_reg = [0xC2,0x00,0x09,0x00,0x00,0x00,0x62,0x00,0x12,0x43,0x00,0x00]
+        self.start_freq = 915
+        self.offset_freq = 18
+        self.power = power
+        self.air_speed = air_speed
 
-    start_freq = 915
-    offset_freq = 18
-    power = 22
-    air_speed = 2400
+        self.UART_BAUDRATE = {
+            1200: 0x00,
+            2400: 0x20,
+            4800: 0x40,
+            9600: 0x60,
+            19200: 0x80,
+            38400: 0xA0,
+            57600: 0xC0,
+            115200: 0xE0
+        }
+        self.PACKET_SIZE = {
+            240: 0x00,
+            128: 0x40,
+            64: 0x80,
+            32: 0xC0
+        }
+        self.POWER_SETTING = {
+            22: 0x00,
+            17: 0x01,
+            13: 0x02,
+            10: 0x03
+        }
 
-    # UART and packet settings
-    UART_BAUDRATE = {
-        1200: 0x00,
-        2400: 0x20,
-        4800: 0x40,
-        9600: 0x60,
-        19200: 0x80,
-        38400: 0xA0,
-        57600: 0xC0,
-        115200: 0xE0
-    }
-    PACKET_SIZE = {
-        240: 0x00,
-        128: 0x40,
-        64: 0x80,
-        32: 0xC0
-    }
-    POWER_SETTING = {
-        22: 0x00,
-        17: 0x01,
-        13: 0x02,
-        10: 0x03
-    }
-
-    def __init__(self, serial_num, freq, addr, power, rssi, air_speed=2400,
-                 net_id=0, buffer_size=240, crypt=0,
-                 relay=False, lbt=False, wor=False):
         self.serial_n = serial_num
         self.freq = freq
         self.addr = addr
-        self.power = power
         self.rssi = rssi
-        self.air_speed = air_speed
         self.net_id = net_id
         self.buffer_size = buffer_size
         self.crypt = crypt
@@ -63,6 +57,7 @@ class sx126x:
         self.ser = serial.Serial(serial_num, 9600)
         self.ser.flushInput()
         self.set_module_settings()
+
 
     def set_module_settings(self):
         # Basic configuration of the module
