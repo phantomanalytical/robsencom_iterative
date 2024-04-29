@@ -67,10 +67,15 @@ def main():
             data = lora_comm.receive_data()
             if data:
                 print("Data received.")
+                # Save received data to a file
+                with open('received_data.bin', 'wb') as file:
+                    file.write(data)
+                print("Data saved to 'received_data.bin'.")
                 break
             else:
                 if user_input("No data received. Would you like to remain in receive mode? (yes/no): ", ['yes', 'no']) == 'no':
                     break
+
 
 if __name__ == "__main__":
     main()
