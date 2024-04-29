@@ -43,8 +43,11 @@ def perform_transmission(lora_comm, power, spreading_factor, file_path):
         lbt=False,
         wor=False
     )
+    data_to_send = open(file_path, 'rb').read()
     start_time = time.time()
-    lora_comm.send_data(open(file_path, 'rb').read())
+    success = lora_comm.send_data(data_to_send)
+    if not success:
+        print("Transmission failed after retry.")
     latency = time.time() - start_time
     return latency
 
