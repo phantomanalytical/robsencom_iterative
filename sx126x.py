@@ -69,6 +69,30 @@ class sx126x:
         settings = bytearray([0xC0, self.addr & 0xFF, (self.addr >> 8) & 0xFF, self.net_id, self.UART_BAUDRATE[self.air_speed],
                               self.PACKET_SIZE[self.buffer_size], self.POWER_SETTING[self.power], 0x00, 0x00])
         self.ser.write(settings)
+        
+    def update_module_settings(self, freq=None, addr=None, power=None, air_speed=None, buffer_size=None):
+    if freq is not None:
+        self.freq = freq
+    if addr is not None:
+        self.addr = addr
+    if power is not None:
+        self.power = power
+    if air_speed is not None:
+        self.air_speed = air_speed
+    if buffer_size is not None:
+        self.buffer_size = buffer_size
+
+    settings = bytearray([
+        0xC0, 
+        self.addr & 0xFF, 
+        (self.addr >> 8) & 0xFF, 
+        self.net_id, 
+        self.UART_BAUDRATE[self.air_speed],
+        self.PACKET_SIZE[self.buffer_size], 
+        self.POWER_SETTING[self.power], 
+        0x00, 0x00
+    ])
+    self.ser.write(settings)
 
     def send(self, data):
         # Packet sending with ACK handling
