@@ -100,10 +100,9 @@ class sx126x:
                     return True
         return False
 
-    def receive(self):
+    def receive(self, timeout=120):
         # Receive data packets
         start_time = time.time()
-        timeout = 120
         received_data = bytearray()
         while True:
             if self.ser.in_waiting:
