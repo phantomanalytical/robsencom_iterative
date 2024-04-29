@@ -1,4 +1,5 @@
 import csv
+import os
 import time
 from communication import LoRaComm
 
@@ -17,8 +18,11 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     elif setting_type == 'air_speed':
         lora_comm.update_settings(air_speed=setting_value)
 
+    with open(file_path, 'rb') as file:
+        data = file.read()
+
     start_time = time.time()
-    lora_comm.send_data(open(file_path, 'rb').read())
+    lora_comm.send_data(data)
     latency = time.time() - start_time
     return latency
 
@@ -43,7 +47,7 @@ def save_results(results, setting_type):
 
 def main():
     address = int(user_input("Enter the LoRa address: "))
-    lora_comm = LoRaComm(address=address)
+    lora_comm = LoRaComm(address=address, serial_num='/dev/ttyS0', freq=915, power=22, rssi=False, air_speed=2400)
 
     choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
     if choice == 'send':
@@ -54,7 +58,7 @@ def main():
             save_results(results, 'power')
 
         if user_input("Iterate through air speed settings? (yes/no): ", ['yes', 'no']) == 'yes':
-            air_speeds = [1200, 2400, 4800, 9600]  # Define air speeds
+            air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]  # Define air speeds
             results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
             save_results(results, 'air_speed')
     elif choice == 'receive':
