@@ -61,12 +61,17 @@ def save_results(results, setting_type):
     print(f"Results saved to {filename}.")
 
 def main():
-    address = int(user_input("Enter the LoRa address: "))
-    lora_comm = LoRaComm(address=address, serial_num='/dev/ttyS0', freq=915, power=22, rssi=False, air_speed=2400)
+    print("Starting main function...")
+    try:
+        address = int(user_input("Enter the LoRa address: "))
+        print(f"Address entered: {address}")
+        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyS0', freq=915, power=22, rssi=False, air_speed=2400)
+        print("LoRa communication initialized.")
 
-    if perform_test_transmission(lora_comm):
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
+        print(f"Choice selected: {choice}")
         if choice == 'send':
+            perform_test_transmission(lora_comm)
             file_path = user_input("Enter the path to the image file: ")
             if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
                 power_settings = [22, 17, 13, 10]  # Define power settings
@@ -96,5 +101,9 @@ def main():
                 else:
                     if user_input("No data received. Would you like to remain in receive mode? (yes/no): ", ['yes', 'no']) == 'no':
                         break
-    else:
-        print("Connection test failed, unable to proceed.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    main()
+    print("Main function completed.")
