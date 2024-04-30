@@ -22,17 +22,23 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
         data = file.read()
 
     start_time = time.time()
-    lora_comm.send_data(data)
+    success = lora_comm.send_data(data)
     latency = time.time() - start_time
-    return latency
+    if not success:
+        print(f"Transmission of {setting_type} setting {setting_value} failed.")
+    return success, latency
 
 def iterative_test(lora_comm, file_path, setting_type, values):
     """ Iteratively tests different settings. """
     results = []
     for value in values:
-        latency = perform_transmission(lora_comm, setting_type, value, file_path)
-        results.append([value, latency])
-        print(f"Tested {setting_type} {value} with latency {latency} seconds.")
+        success, latency = perform_transmission(lora_comm, setting_type, value, file_path)
+        if success:
+            results.append([value, latency])
+            print(f"Tested {setting_type} {value} with latency {latency} seconds.")
+        else:
+            results.append([value, None])
+            print(f"Failed to test {setting_type} {value}.")
     return results
 
 def save_results(results, setting_type):
@@ -53,12 +59,12 @@ def main():
     if choice == 'send':
         file_path = user_input("Enter the path to the image file: ")
         if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
-            power_settings = [22, 17, 13, 10]  # Define power settings
+            power_settings = [22, 17, 13, 10]
             results = iterative_test(lora_comm, file_path, 'power', power_settings)
             save_results(results, 'power')
 
         if user_input("Iterate through air speed settings? (yes/no): ", ['yes', 'no']) == 'yes':
-            air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]  # Define air speeds
+            air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
             results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
             save_results(results, 'air_speed')
     elif choice == 'receive':
@@ -67,15 +73,14 @@ def main():
             data = lora_comm.receive_data()
             if data:
                 print("Data received.")
-                # Save received data to a file
-                with open('received_data.bin', 'wb') as file:
+                # Assuming the data to be binary image data
+                with open('received_image.png', 'wb') as file:
                     file.write(data)
-                print("Data saved to 'received_data.bin'.")
+                print("Data saved to 'received_image.png'.")
                 break
             else:
                 if user_input("No data received. Would you like to remain in receive mode? (yes/no): ", ['yes', 'no']) == 'no':
                     break
-
 
 if __name__ == "__main__":
     main()

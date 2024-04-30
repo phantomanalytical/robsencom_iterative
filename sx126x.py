@@ -80,11 +80,28 @@ class sx126x:
         settings = bytearray([0xC0, self.addr & 0xFF, (self.addr >> 8) & 0xFF, self.net_id, self.UART_BAUDRATE[self.air_speed], self.PACKET_SIZE[self.buffer_size], self.POWER_SETTING[self.power], 0x00, 0x00])
         self.ser.write(settings)
 
-    def send(self, data):
+#    def send(self, data):
         # Packet sending with ACK handling
-        if not self.send_packet(data):
-            print("Sending failed, retrying...")
-            self.send_packet(data)
+#        if not self.send_packet(data):
+#            print("Sending failed, retrying...")
+#            self.send_packet(data)
+            
+    def send(self, data):
+        try:
+            self.ser.write(data)
+            if not self.wait_for_ack():
+                print("No ACK received. Retrying...")
+                self.ser.write(data)  # Retry sending the packet
+                if not self.wait_for_ack():
+                    print("Retry failed. Check connection.")
+                    return False
+            return True
+        except serial.SerialException as e:
+            print(f"Failed to send data due to serial error: {e}")
+            return False
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return False
 
     def send_packet(self, data):
         self.ser.write(data)
@@ -100,20 +117,40 @@ class sx126x:
                     return True
         return False
 
-    def receive(self, timeout=120):
+#    def receive(self, timeout=120):
         # Receive data packets
-        start_time = time.time()
+#        start_time = time.time()
+#        received_data = bytearray()
+#        while True:
+#            if self.ser.in_waiting:
+#                received_data += self.ser.read(self.ser.in_waiting)
+#                if b'END' in received_data:
+#                    self.ser.write(b'ACK')
+#                    break
+#            if time.time() - start_time > timeout:
+#                break
+#            time.sleep(0.1)
+#        return bytes(received_data)
+        
+    def receive(self, timeout=120):
         received_data = bytearray()
-        while True:
-            if self.ser.in_waiting:
-                received_data += self.ser.read(self.ser.in_waiting)
-                if b'END' in received_data:
-                    self.ser.write(b'ACK')
-                    break
-            if time.time() - start_time > timeout:
-                break
-            time.sleep(0.1)
-        return bytes(received_data)
+        start_time = time.time()
+        try:
+            while time.time() - start_time < timeout:
+                if self.ser.in_waiting:
+                    received_data += self.ser.read(self.ser.in_waiting)
+                    if b'END' in received_data:
+                        self.ser.write(b'ACK')
+                        return bytes(received_data)
+                time.sleep(0.1)
+            print("Timeout reached without receiving complete data.")
+            return None
+        except serial.SerialException as e:
+            print(f"Serial error during reception: {e}")
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred during reception: {e}")
+            return None
 
     def get_settings(self):
         # Retrieve settings from the module

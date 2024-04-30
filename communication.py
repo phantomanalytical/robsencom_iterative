@@ -13,8 +13,16 @@ class LoRaComm:
             self.lora.update_module_settings(air_speed=air_speed)
 
     def send_data(self, data):
-        self.lora.send(data)
+        success = self.lora.send(data)
+        if not success:
+            print("Data transmission failed.")
+            return False
+        return True
 
     def receive_data(self, timeout=120):
-        return self.lora.receive(timeout=timeout)
+        data = self.lora.receive(timeout=timeout)
+        if data is None:
+            print("No data received or incomplete data.")
+            return None
+        return data
 
