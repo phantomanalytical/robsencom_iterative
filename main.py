@@ -57,6 +57,65 @@ def save_results(results, setting_type):
             writer.writerow(result)
     print(f"Results saved to {filename}.")
 
+import csv
+import os
+import time  # Ensure the time module is imported
+from communication import LoRaComm
+
+def user_input(prompt, options=None):
+    """ Helper function to handle user input and validate it against provided options. """
+    user_choice = input(prompt)
+    while options and user_choice.lower().strip() not in options:
+        print("Invalid option. Please try again.")
+        user_choice = input(prompt)
+    return user_choice
+
+def perform_test_transmission(lora_comm):
+    """ Sends a test message and expects a specific reply to ensure the communication link is working. """
+    print("Sending test message...")
+    lora_comm.send_data("transmit".encode())  # Encoding the string to bytes
+    response = lora_comm.receive_data(timeout=15)
+    if response and response.decode() == "success":  # Decoding the received bytes to string
+        print("Test successful, proceeding with power settings.")
+        return True
+    else:
+        print("Test failed, no correct response received.")
+        return False
+
+def perform_transmission(lora_comm, setting_type, setting_value, file_path):
+    """ Send an image file with specific settings and measure latency. """
+    if setting_type == 'power':
+        lora_comm.update_settings(power=setting_value)
+    elif setting_type == 'air_speed':
+        lora_comm.update_settings(air_speed=setting_value)
+
+    with open(file_path, 'rb') as file:
+        data = file.read()
+
+    start_time = time.time()
+    lora_comm.send_data(data)
+    latency = time.time() - start_time
+    return latency
+
+def iterative_test(lora_comm, file_path, setting_type, values):
+    """ Iteratively tests different settings. """
+    results = []
+    for value in values:
+        latency = perform_transmission(lora_comm, setting_type, value, file_path)
+        results.append([value, latency])
+        print(f"Tested {setting_type} {value} with latency {latency} seconds.")
+    return results
+
+def save_results(results, setting_type):
+    """ Saves the test results into a CSV file. """
+    filename = f"{setting_type}_results.csv"
+    with open(filename, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Setting Value', 'Latency'])
+        for result in results:
+            writer.writerow(result)
+    print(f"Results saved to {filename}.")
+
 def main():
     print("Starting main function...")
     try:
@@ -79,19 +138,6 @@ def main():
                     air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]  # Define air speeds
                     results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
                     save_results(results, 'air_speed')
-            elif choice == 'receive':
-                print("Device set to receive mode.")
-                setting_type = user_input("Enter the setting type (power/air_speed): ")
-                iteration = 1  # Initialize iteration count
-                while True:
-                    file_name = f"image_{iteration}_{setting_type}.png"
-                    data = lora_comm.receive_data(save_file=True, setting_type=setting_type, iteration_number=iteration)
-                    if data:
-                        print(f"Data received and saved as {file_name}.")
-                        iteration += 1  # Increment for the next file
-                    else:
-                        if user_input("No more data received. Would you like to remain in receive mode? (yes/no): ", ['yes', 'no']) == 'no':
-                            break
         else:
             print("Initial communication test failed. Please check the setup and try again.")
     except Exception as e:
