@@ -14,9 +14,11 @@ class LoRaComm:
             self.lora.update_module_settings(air_speed=air_speed)
 
     def send_data(self, data):
+        if isinstance(data, str):
+            data = data.encode()  # Convert string to bytes if necessary
         success = self.lora.send(data)
         if not success:
-            print("Data transmission failed.")
+            print("Data transmission failed. No ACK received.")
             return False
         return True
 
@@ -30,28 +32,29 @@ class LoRaComm:
                 received_data += new_data
                 print(f"Received data chunk: {new_data}")
 
-                # Check if the message is a test command
-                if b'transmit' in new_data:
+                # Handle test message
+                if b'transmit' in received_data:
                     self.send_data(b'success')
-                    print("Test successful, sent ACK 'success'")
-                    continue  # Continue listening for more data if just a test
-                
-                # Look for a predefined end-of-transmission marker
-                if b'END' in received_data:  # Check for end of file or transmission
+                    print("Test message received. Sent ACK 'success'.")
+                    continue  # Continue to listen after a test message
+
+                # Break if end of transmission marker is found
+                if b'END' in received_data:
                     self.lora.ser.write(b'ACK')
-                    print("End of data transmission detected, sent ACK")
+                    print("End of data transmission detected. Sent ACK.")
                     break
 
             if time.time() - start_time > timeout:
-                print("Timeout reached while waiting for data")
+                print("Timeout reached while waiting for data.")
                 break
             time.sleep(0.1)
 
-        # If data was meant to be saved to a file and it isn't just a test
+        # Save data to a file if not a test and if needed
         if save_file and received_data and not b'transmit' in received_data:
             file_path = f'image_{iteration_number}_{setting_type}.png'
             with open(file_path, 'wb') as file:
                 file.write(received_data)
-                print(f"Data successfully saved to '{file_path}'")
+                print(f"Data successfully saved to '{file_path}'.")
 
         return bytes(received_data)
+
