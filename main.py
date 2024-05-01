@@ -1,5 +1,4 @@
 import csv
-import os
 import time
 from communication import LoRaComm
 
@@ -12,19 +11,16 @@ def user_input(prompt, options=None):
     return user_choice
 
 def perform_test_transmission(lora_comm):
-    """ Sends a test message and expects a specific reply. """
-    print("Performing connection test. Type 'ok' to send test message.")
-    if user_input("Type here: ", ['ok']) == 'ok':
-        lora_comm.send_data(b'transmit')
-        print("Test message sent, waiting for response...")
-        response = lora_comm.receive_data(timeout=15)
-        if response == b'success':
-            print("Connection test successful!")
-            return True
-        else:
-            print("Test failed. No response received.")
-            return False
-    return False
+    """ Sends a test message and expects a specific reply to ensure the communication link is working. """
+    print("Sending test message...")
+    lora_comm.send_data("transmit")
+    response = lora_comm.receive_data(timeout=15)
+    if response == "success":
+        print("Test successful, proceeding with file transmission.")
+        return True
+    else:
+        print("Test failed, no correct response received.")
+        return False
 
 def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     """ Send an image file with specific settings and measure latency. """
@@ -44,10 +40,11 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
 def iterative_test(lora_comm, file_path, setting_type, values):
     """ Iteratively tests different settings. """
     results = []
-    for value in values:
+    for i, value in enumerate(values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
+        lora_comm.send_data(f"Setting change to {setting_type} {value} complete. Iteration {i + 1}".encode())  # Notify receiver of setting change
     return results
 
 def save_results(results, setting_type):
@@ -68,39 +65,35 @@ def main():
         lora_comm = LoRaComm(address=address, serial_num='/dev/ttyS0', freq=915, power=22, rssi=False, air_speed=2400)
         print("LoRa communication initialized.")
 
-        choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
-        print(f"Choice selected: {choice}")
-        if choice == 'send':
-            perform_test_transmission(lora_comm)
-            file_path = user_input("Enter the path to the image file: ")
-            if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
-                power_settings = [22, 17, 13, 10]  # Define power settings
-                results = iterative_test(lora_comm, file_path, 'power', power_settings)
-                save_results(results, 'power')
+        if perform_test_transmission(lora_comm):
+            choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
+            print(f"Choice selected: {choice}")
+            if choice == 'send':
+                file_path = user_input("Enter the path to the image file: ")
+                if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
+                    power_settings = [22, 17, 13, 10]  # Define power settings
+                    results = iterative_test(lora_comm, file_path, 'power', power_settings)
+                    save_results(results, 'power')
 
-            if user_input("Iterate through air speed settings? (yes/no): ", ['yes', 'no']) == 'yes':
-                air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]  # Define air speeds
-                results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
-                save_results(results, 'air_speed')
-        elif choice == 'receive':
-            print("Device set to receive mode.")
-            while True:
-                data = lora_comm.receive_data()
-                if data:
-                    if data == b'transmit':
-                        print("Test message received.")
-                        lora_comm.send_data(b'success')  # Responding to the test message
-                        print("Response sent back.")
+                if user_input("Iterate through air speed settings? (yes/no): ", ['yes', 'no']) == 'yes':
+                    air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]  # Define air speeds
+                    results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
+                    save_results(results, 'air_speed')
+            elif choice == 'receive':
+                print("Device set to receive mode.")
+                setting_type = user_input("Enter the setting type (power/air_speed): ")
+                iteration = 1  # Initialize iteration count
+                while True:
+                    file_name = f"image_{iteration}_{setting_type}.png"
+                    data = lora_comm.receive_data(save_file=True, setting_type=setting_type, iteration_number=iteration)
+                    if data:
+                        print(f"Data received and saved as {file_name}.")
+                        iteration += 1  # Increment for the next file
                     else:
-                        print("Data received.")
-                        # Save received data to a PNG file if it's actual data
-                        with open('received_image.png', 'wb') as file:
-                            file.write(data)
-                        print("Image saved to 'received_image.png'.")
-                        break
-                else:
-                    if user_input("No data received. Would you like to remain in receive mode? (yes/no): ", ['yes', 'no']) == 'no':
-                        break
+                        if user_input("No more data received. Would you like to remain in receive mode? (yes/no): ", ['yes', 'no']) == 'no':
+                            break
+        else:
+            print("Initial communication test failed. Please check the setup and try again.")
     except Exception as e:
         print(f"An error occurred: {e}")
 
