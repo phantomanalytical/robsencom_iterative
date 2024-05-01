@@ -20,7 +20,7 @@ class LoRaComm:
                 return False
         return True
 
-    def receive_data(self, timeout=120):
+    def receive_data(self, timeout=120, save_path=None):
         print("Waiting to receive data...")
         start_time = time.time()
         received_data = bytearray()
@@ -29,18 +29,19 @@ class LoRaComm:
                 data = self.lora.ser.read(self.lora.ser.in_waiting)
                 received_data += data
                 print(f"Received data chunk: {data}")
-                
-                # Handle specific protocol messages
-                if b'transmit' in received_data:
-                    print("Test message 'transmit' received.")
-                    self.send_data(b'success')
-                    received_data.clear()  # Clear buffer after handling
-                if b'END' in received_data:
-                    print("End of transmission detected.")
-                    break
+
+            if b'END' in received_data:
+                print("End of transmission detected.")
+                self.lora.ser.write(b'ACK')
+                break
 
             if time.time() - start_time > timeout:
                 print("Timeout reached while waiting for data.")
                 break
             time.sleep(0.1)
+
+        if save_path:
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
         return bytes(received_data)
