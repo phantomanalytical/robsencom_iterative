@@ -69,11 +69,11 @@ def main():
             if perform_test_transmission(lora_comm):
                 file_path = user_input("Enter the path to the image file: ")
                 if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
-                    power_settings = [22, 17, 13, 10]  # Define power settings
+                    power_settings = [22, 17, 13, 10]
                     results = iterative_test(lora_comm, file_path, 'power', power_settings)
                     save_results(results, 'power')
                 if user_input("Iterate through air speed settings? (yes/no): ", ['yes', 'no']) == 'yes':
-                    air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]  # Define air speeds
+                    air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
                     results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
                     save_results(results, 'air_speed')
         elif choice == 'receive':
@@ -81,14 +81,19 @@ def main():
             while True:
                 data = lora_comm.receive_data()
                 if data:
-                    print("Data received.")
-                    # Save received data to a PNG file if it's actual data
-                    with open('received_image.png', 'wb') as file:
-                        file.write(data)
-                    print("Image saved to 'received_image.png'.")
-                    break
+                    if data == b'transmit':
+                        print("Test message received. Sending ACK 'success'.")
+                        lora_comm.send_data(b'success', wait_for_ack=True)  # Corrected to wait_for_ack
+                    else:
+                        print("Data received.")
+                        with open('received_image.png', 'wb') as file:
+                            file.write(data)
+                        print("Image saved to 'received_image.png'.")
+                        break
     except Exception as e:
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
+    print("Main function completed.")
+

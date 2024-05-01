@@ -11,14 +11,30 @@ class LoRaComm:
         if air_speed is not None:
             self.lora.update_module_settings(air_speed=air_speed)
 
-    def send_data(self, data):
-        print(f"Attempting to send data: {data}")
+def send_data(self, data, wait_for_ack=False):
+    print(f"Attempting to send data: {data}")
+    if not self.lora.send(data):
+        print("No ACK received. Retrying...")
         if not self.lora.send(data):
-            print("No ACK received. Retrying...")
-            if not self.lora.send(data):
-                print("Retry failed. Check connection.")
-                return False
-        return True
+            print("Retry failed. Check connection.")
+            return False
+        if wait_for_ack and not self.wait_for_ack():  # Checking for ACK if required
+            print("No ACK received after retry.")
+            return False
+    return True
+
+
+    def wait_for_ack(self, timeout=15):
+        print("Listening for ACK...")
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if self.lora.ser.in_waiting:
+                data = self.lora.ser.read(self.lora.ser.in_waiting)
+                if b'ACK' in data:
+                    print("ACK received.")
+                    return True
+        print("ACK listening timeout.")
+        return False
 
     def receive_data(self, timeout=120, save_path=None):
         print("Waiting to receive data...")
@@ -45,3 +61,4 @@ class LoRaComm:
                 file.write(received_data)
                 print(f"Data successfully saved to '{save_path}'")
         return bytes(received_data)
+
