@@ -45,7 +45,7 @@ def iterative_test(lora_comm, file_path, setting_type, values):
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
         save_file_path = f'image_{i + 1}_{setting_type}.png'
-        lora_comm.receive_data(save_path=save_file_path)
+        lora_comm.receive_data(save_path=save_file_path)  # Make sure to implement receive_data correctly in communication.py
     return results
 
 def save_results(results, setting_type):
@@ -81,19 +81,11 @@ def main():
             while True:
                 data = lora_comm.receive_data()
                 if data:
-                    if data == b'transmit':
-                        print("Test message received. Sending ACK 'success'.")
-                        lora_comm.send_data(b'success', wait_for_ack=True)  # Corrected to wait_for_ack
-                    else:
-                        print("Data received.")
-                        with open('received_image.png', 'wb') as file:
-                            file.write(data)
-                        print("Image saved to 'received_image.png'.")
-                        break
+                    print("Data received and saved.")
+                    break
     except Exception as e:
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
     print("Main function completed.")
-

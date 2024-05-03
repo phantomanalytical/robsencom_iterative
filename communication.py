@@ -13,25 +13,12 @@ class LoRaComm:
 
     def send_data(self, data):
         print("Attempting to send data...")
-        self.lora.send(data)  # Initial attempt to send data
-        if not self.wait_for_ack():
+        if not self.lora.send(data):
             print("No ACK received. Retrying...")
-            self.lora.send(data)  # Retry sending data
-            if not self.wait_for_ack():
+            if not self.lora.send(data):
                 print("Retry failed. Check connection.")
                 return False
         return True
-
-    def wait_for_ack(self):
-        """ Wait for an ACK from the receiver. """
-        start_time = time.time()
-        timeout = 5  # seconds
-        while time.time() - start_time < timeout:
-            if self.lora.ser.in_waiting:
-                ack = self.lora.ser.read(self.lora.ser.in_waiting)
-                if ack == b'ACK':
-                    return True
-        return False
 
     def receive_data(self, timeout=120, save_path=None):
         print("Waiting to receive data...")
@@ -43,18 +30,20 @@ class LoRaComm:
                 received_data += data
                 print(f"Received data chunk: {data}")
 
-            if b'END' in received_data:
-                print("End of transmission detected.")
-                self.lora.ser.write(b'ACK')
-                break
+                # Check for an 'END' marker indicating the end of a transmission
+                if b'END' in received_data:
+                    print("End of transmission detected.")
+                    self.lora.ser.write(b'ACK')  # Send ACK after receiving complete data
+                    break
 
             if time.time() - start_time > timeout:
                 print("Timeout reached while waiting for data.")
                 break
             time.sleep(0.1)
 
-        if save_path:
+        if save_path and received_data:
             with open(save_path, 'wb') as file:
                 file.write(received_data)
                 print(f"Data successfully saved to '{save_path}'")
+
         return bytes(received_data)
