@@ -13,12 +13,17 @@ class LoRaComm:
 
     def send_data(self, data):
         print("Attempting to send data...")
-        if not self.lora.send(data):
+        self.lora.send(data)  # Initial attempt to send data
+        time.sleep(0.5)  # Give some time for the device to switch to receive mode
+        if not self.lora.wait_for_ack():
             print("No ACK received. Retrying...")
-            if not self.lora.send(data):
+            time.sleep(0.5)  # Again, give some time before retrying
+            self.lora.send(data)  # Retry sending data
+            if not self.lora.wait_for_ack():
                 print("Retry failed. Check connection.")
                 return False
         return True
+
 
     def receive_data(self, timeout=120, save_path=None):
         print("Waiting to receive data...")
