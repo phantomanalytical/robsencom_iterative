@@ -42,7 +42,6 @@ class sx126x:
         self.relay = relay
         self.lbt = lbt
         self.wor = wor
-        self.rssi = rssi
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -60,6 +59,7 @@ class sx126x:
         GPIO.output(self.M0, GPIO.LOW)
         GPIO.output(self.M1, GPIO.LOW)
         time.sleep(0.1)
+        print("Switched to normal mode.")
 
     def update_module_settings(self):
         """Update the module's settings based on current attributes."""
@@ -67,26 +67,32 @@ class sx126x:
                               self.UART_BAUDRATE[self.air_speed], self.PACKET_SIZE[self.buffer_size],
                               self.POWER_SETTING[self.power], 0x00, 0x00])
         self.ser.write(settings)
+        print("Module settings updated.")
 
     def send(self, data):
         """Send data and wait for an ACK."""
         self.set_normal_mode()  # Ensure it's in normal mode to send
+        print("Sending data...")
         self.ser.write(data)
         return self.wait_for_ack()
 
     def wait_for_ack(self):
         """Wait for an ACK from the receiver."""
+        print("Waiting for ACK...")
         start_time = time.time()
         while time.time() - start_time < 5:  # Wait for up to 5 seconds for an ACK
             if self.ser.in_waiting:
                 response = self.ser.read(self.ser.in_waiting)
                 if b'ACK' in response:
+                    print("ACK received.")
                     return True
+        print("No ACK received.")
         return False
 
     def receive(self, timeout=120):
         """Receive data until 'END' marker is found or timeout."""
         self.set_normal_mode()  # Ensure it's in normal mode to receive
+        print("Receiving data...")
         received_data = bytearray()
         start_time = time.time()
         while time.time() - start_time < timeout:
@@ -94,16 +100,8 @@ class sx126x:
                 received_data += self.ser.read(self.ser.in_waiting)
                 if b'END' in received_data:
                     self.ser.write(b'ACK')
-                    break
-        return bytes(received_data)
-
-    def get_channel_rssi(self):
-        """Get channel RSSI."""
-        self.set_normal_mode()  # Ensure it's in normal mode to check RSSI
-        self.ser.write(b'\xC1\x00\xC0\x00\x00')
-        if self.ser.in_waiting:
+                    print("Received complete data with END marker.")
+                    return bytes(received_data)
             time.sleep(0.1)
-            response = self.ser.read(self.ser.in_waiting)
-            if len(response) >= 5:
-                return -256 + response[4]
+        print("Timeout reached without receiving complete data.")
         return None
