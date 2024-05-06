@@ -72,9 +72,26 @@ class sx126x:
     def send(self, data):
         """Send data and wait for an ACK."""
         self.set_normal_mode()  # Ensure it's in normal mode to send
-        print("Sending data...")
+        time.sleep(0.1)  # Short delay after setting mode
+        self.ser.flushInput()  # Clear any stale data
+
         self.ser.write(data)
-        return self.wait_for_ack()
+        print("Data sent, waiting for ACK...")
+
+        if self.wait_for_ack():
+            print("ACK received.")
+            return True
+        else:
+            print("No ACK received. Retrying...")
+            time.sleep(0.5)  # Wait before retrying
+            self.ser.write(data)  # Retry sending the packet
+            if self.wait_for_ack():
+                print("ACK received on retry.")
+                return True
+            else:
+                print("Retry failed. Check connection.")
+                return False
+
 
     def wait_for_ack(self):
         """Wait for an ACK from the receiver."""
