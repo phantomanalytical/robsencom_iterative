@@ -3,6 +3,31 @@ import serial
 import time
 
 class sx126x:
+    UART_BAUDRATE = {
+        1200: 0x00,
+        2400: 0x20,
+        4800: 0x40,
+        9600: 0x60,
+        19200: 0x80,
+        38400: 0xA0,
+        57600: 0xC0,
+        115200: 0xE0
+    }
+
+    PACKET_SIZE = {
+        240: 0x00,
+        128: 0x40,
+        64: 0x80,
+        32: 0xC0
+    }
+
+    POWER_SETTING = {
+        22: 0x00,
+        17: 0x01,
+        13: 0x02,
+        10: 0x03
+    }
+
     def __init__(self, serial_num, freq, addr, power, rssi, air_speed=2400, net_id=0, buffer_size=240, crypt=0, relay=False, lbt=False, wor=False):
         self.M0 = 22
         self.M1 = 27
@@ -17,6 +42,7 @@ class sx126x:
         self.relay = relay
         self.lbt = lbt
         self.wor = wor
+        self.rssi = rssi
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -35,22 +61,11 @@ class sx126x:
         GPIO.output(self.M1, GPIO.LOW)
         time.sleep(0.1)
 
-    def set_wake_up_mode(self):
-        """Set module to wake-up mode (M0=1, M1=0) for low power consumption."""
-        GPIO.output(self.M0, GPIO.HIGH)
-        GPIO.output(self.M1, GPIO.LOW)
-        time.sleep(0.1)
-
-    def set_power_saving_mode(self):
-        """Set module to power saving mode (M0=0, M1=1)."""
-        GPIO.output(self.M0, GPIO.LOW)
-        GPIO.output(self.M1, GPIO.HIGH)
-        time.sleep(0.1)
-
     def update_module_settings(self):
         """Update the module's settings based on current attributes."""
-        settings = bytearray([0xC0, self.addr & 0xFF, (self.addr >> 8) & 0xFF, self.net_id, self.UART_BAUDRATE[self.air_speed],
-                              self.PACKET_SIZE[self.buffer_size], self.POWER_SETTING[self.power], 0x00, 0x00])
+        settings = bytearray([0xC0, self.addr & 0xFF, (self.addr >> 8) & 0xFF, self.net_id,
+                              self.UART_BAUDRATE[self.air_speed], self.PACKET_SIZE[self.buffer_size],
+                              self.POWER_SETTING[self.power], 0x00, 0x00])
         self.ser.write(settings)
 
     def send(self, data):
