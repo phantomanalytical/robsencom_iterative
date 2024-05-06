@@ -35,11 +35,12 @@ class LoRaComm:
                 received_data += data
                 print(f"Received data chunk: {data}")
 
-                # Check for an 'END' marker indicating the end of a transmission
-                if b'END' in received_data:
-                    print("End of transmission detected.")
-                    self.lora.ser.write(b'ACK')  # Send ACK after receiving complete data
-                    break
+            # Handling of message assembly and checking for complete message
+            if b'END' in received_data:
+                print("End of transmission detected.")
+                self.lora.ser.write(b'ACK')  # Send ACK after receiving complete data
+                received_data = received_data.split(b'END')[0]  # Assume everything before 'END' is the message
+                break
 
             if time.time() - start_time > timeout:
                 print("Timeout reached while waiting for data.")
