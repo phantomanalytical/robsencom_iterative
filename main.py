@@ -11,17 +11,6 @@ def user_input(prompt, options=None):
         user_choice = input(prompt)
     return user_choice
 
-def perform_test_transmission(lora_comm):
-    """ Sends a test message and expects a specific reply. """
-    print("Sending test message...")
-    if lora_comm.send_data(b"transmit"):
-        response = lora_comm.receive_data(timeout=15)
-        if response == b"success":
-            print("Test successful, proceeding with settings iteration.")
-            return True
-    print("Test failed, no correct response received.")
-    return False
-
 def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     """ Send an image file with specific settings and measure latency. """
     if setting_type == 'power':
@@ -38,14 +27,14 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     return latency
 
 def iterative_test(lora_comm, file_path, setting_type, values):
-    """ Iteratively tests different settings and save transmitted images with naming convention. """
+    """ Iteratively tests different settings and saves transmitted images with naming convention. """
     results = []
     for i, value in enumerate(values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
         save_file_path = f'image_{i + 1}_{setting_type}.png'
-        lora_comm.receive_data(save_path=save_file_path)  # Make sure to implement receive_data correctly in communication.py
+        lora_comm.receive_data(save_path=save_file_path)
     return results
 
 def save_results(results, setting_type):
@@ -66,22 +55,21 @@ def main():
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
-            if perform_test_transmission(lora_comm):
-                file_path = user_input("Enter the path to the image file: ")
-                if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
-                    power_settings = [22, 17, 13, 10]
-                    results = iterative_test(lora_comm, file_path, 'power', power_settings)
-                    save_results(results, 'power')
-                if user_input("Iterate through air speed settings? (yes/no): ", ['yes', 'no']) == 'yes':
-                    air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
-                    results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
-                    save_results(results, 'air_speed')
+            file_path = user_input("Enter the path to the image file: ")
+            if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
+                power_settings = [22, 17, 13, 10]
+                results = iterative_test(lora_comm, file_path, 'power', power_settings)
+                save_results(results, 'power')
+            if user_input("Iterate through air speed settings? (yes/no): ", ['yes', 'no']) == 'yes':
+                air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+                results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
+                save_results(results, 'air_speed')
         elif choice == 'receive':
             print("Device set to receive mode.")
             while True:
                 data = lora_comm.receive_data()
                 if data:
-                    print("Data received and saved.")
+                    print("Data received.")
                     break
     except Exception as e:
         print(f"An error occurred: {e}")
