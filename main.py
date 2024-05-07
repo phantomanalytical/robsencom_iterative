@@ -27,7 +27,7 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     return latency
 
 def iterative_test(lora_comm, file_path, setting_type, values):
-    """ Iteratively tests different settings and save transmitted images with naming convention. """
+    """ Iteratively tests different settings. """
     results = []
     for i, value in enumerate(values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
@@ -50,33 +50,36 @@ def main():
     try:
         address = int(user_input("Enter the LoRa address: "))
         lora_comm = LoRaComm(address=address, serial_num='/dev/ttyS0', freq=915, power=22, rssi=False, air_speed=2400)
-        while True:
-            choice = user_input("Choose an action - [P]ower, [S]preading factor, [Q]uit, or [R]eceive: ", ['p', 's', 'q', 'r'])
-            if choice == 'p':
-                file_path = user_input("Enter the path to the image file: ")
-                power_settings = [22, 17, 13, 10]
-                results = iterative_test(lora_comm, file_path, 'power', power_settings)
-                save_results(results, 'power')
-            elif choice == 's':
-                file_path = user_input("Enter the path to the image file: ")
-                air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
-                results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
-                save_results(results, 'air_speed')
-            elif choice == 'q':
-                print("Quitting the application.")
-                break
-            elif choice == 'r':
-                print("Device set to receive mode.")
-                i = 0
-                setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
-                while True:
-                    save_file_path = f'/home/pi/image_{i+1}_{setting_type}.png'
-                    data = lora_comm.receive_data(save_path=save_file_path)
-                    if data:
-                        print(f"Data received and saved as {save_file_path}.")
-                        i += 1
-                        if user_input("Continue receiving? (yes/no): ", ['yes', 'no']) == 'no':
-                            break
+
+        choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
+        if choice == 'send':
+            file_path = user_input("Enter the path to the image file: ")
+            while True:
+                setting_type = user_input("Choose setting to iterate (p for power, s for spreading factor, q to quit): ", ['p', 's', 'q'])
+                if setting_type == 'q':
+                    break
+                if setting_type == 'p':
+                    power_settings = [22, 17, 13, 10]
+                    results = iterative_test(lora_comm, file_path, 'power', power_settings)
+                    save_results(results, 'power')
+                elif setting_type == 's':
+                    air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+                    results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
+                    save_results(results, 'air_speed')
+        elif choice == 'receive':
+            print("Device set to receive mode.")
+            setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
+            settings_count = {'power': 4, 'air_speed': 8}  # Settings count
+            i = 0
+            while i < settings_count.get(setting_type, 4):  # Default to 4 if type is not found
+                save_file_path = f'/home/pi/image_{i+1}_{setting_type}.png'
+                data = lora_comm.receive_data(save_path=save_file_path)
+                if data:
+                    print(f"Data received and saved as {save_file_path}.")
+                    i += 1
+                    continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
+                    if continue_choice == 'no':
+                        break
     except Exception as e:
         print(f"An error occurred: {e}")
 
