@@ -70,16 +70,32 @@ def main():
         address = int(user_input("Enter the LoRa address: "))
         lora_comm = LoRaComm(address=address, serial_num='/dev/ttyS0', freq=915, power=22, rssi=False, air_speed=2400)
 
-        mode = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
-        if mode == 'send':
-            settings_iteration(lora_comm)
-        elif mode == 'receive':
+        choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
+        if choice == 'send':
+            user_choice = ''
+            while user_choice != 'quit':
+                file_path = user_input("Enter the path to the image file: ")
+                if user_input("Iterate through power settings? (yes/no): ", ['yes', 'no']) == 'yes':
+                    power_settings = [22, 17, 13, 10]
+                    results = iterative_test(lora_comm, file_path, 'power', power_settings)
+                    save_results(results, 'power')
+                elif user_input("Iterate through air speed settings? (yes/no): ", ['yes', 'no']) == 'yes':
+                    air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+                    results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
+                    save_results(results, 'air_speed')
+                
+                user_choice = user_input("Do you want to send another file, iterate settings, or quit? (send/iterate/quit): ", ['send', 'iterate', 'quit'])
+
+        elif choice == 'receive':
             print("Device set to receive mode.")
             while True:
                 data = lora_comm.receive_data()
                 if data:
                     print("Data received and saved.")
-                    break
+                    # Here add a query to continue receiving or to quit
+                    continue_receiving = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
+                    if continue_receiving == 'no':
+                        break
     except Exception as e:
         print(f"An error occurred: {e}")
 
