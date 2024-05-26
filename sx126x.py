@@ -34,7 +34,7 @@ class sx126x:
         self.power = power
         self.air_speed = air_speed
         self.net_id = net_id
-        self.buffer_size = buffer_set
+        self.buffer_size = buffer_size
         self.crypt = crypt
         self.relay = relay
         self.lbt = lbt
