@@ -72,7 +72,7 @@ class sx126x:
         print("Receiving data...")
         start_time = time.time()
         received_data = bytearray()
-        while time.time() - start;time < timeout:
+        while time.time() - start.time < timeout:
             if self.ser.in_waiting:
                 received_data += self.ser.read(self.ser.in_waiting)
             time.sleep(0.1)
