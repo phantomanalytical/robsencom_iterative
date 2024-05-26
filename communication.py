@@ -2,7 +2,7 @@ from sx126x import sx126x
 import time
 
 class LoRaComm:
-    def __init__(self, address=36, serial_num='/dev/bus/usb/001/003', freq=915, power=22, rssi=False, air_speed=2400):
+    def __init__(self, address=36, serial_num='/dev/ttyACM0', freq=915, power=22, rssi=False, air_speed=2400):
         self.lora = sx126x(serial_num=serial_num, freq=freq, addr=address, power=power, rssi=rssi, air_speed=air_speed)
 
     def update_settings(self, power=None, air_speed=None):
