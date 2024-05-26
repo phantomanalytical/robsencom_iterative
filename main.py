@@ -1,7 +1,7 @@
 import csv
 import os
 import time
-from communication import LoaComm
+from communication import LoRaComm
 
 def user_input(prompt, options=None):
     """ Helper function to handle user input and validate it against provided options. """
