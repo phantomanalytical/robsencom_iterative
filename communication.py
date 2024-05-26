@@ -2,12 +2,16 @@ from sx126x import sx126x
 import time
 
 class LoRaComm:
-    def __init__(self, address=36, serial_num='/dev/ttyACM0', spreading_factor=7, coding_rate=1, network_id=0):
+    def __init__(self, address=36, serial_num='/dev/ttyACM0', freq=65, power=22, spreading_factor=7, coding_rate=1, network_id=0):
         self.lora = sx126x(serial_num=serial_num, net_id=network_id)
-        # Set initial configuration
-        self.lora.set_address(address)
+        # Set the frequency, power, spreading factor, and coding rate during initialization
+        self.lora.set_frequency(freq)
+        self.lora.set_power(power)
         self.lora.set_spreading_factor(spreading_factor)
         self.lora.set_coding_rate(coding_rate)
+        self.lora.set_address(address)
+        self.lora.set_network_id(network_id)
+        self.lora.set_lpcfg(8, 0, 1)  # Preamble value, variable length packet, CRC enabled
 
     def update_settings(self, power=None, spreading_factor=None, coding_rate=None, address=None, network_id=None):
         if power is not None:

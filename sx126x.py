@@ -32,11 +32,14 @@ class sx126x:
     def set_coding_rate(self, cr):
         self.ser.write(f'AT+CR={cr}\r\n'.encode())
 
-    def set_address(self, addr):
-        self.ser.write(f'AT+ADDR={addr}\r\n'.encode())
+    def set_address(self, address):
+        self.ser.write(f'AT+ADDR={address}\r\n'.encode())
 
     def set_network_id(self, net_id):
         self.ser.write(f'AT+NETID={net_id}\r\n'.encode())
+
+    def set_lpcfg(self, preamble, packet_type, crc):
+        self.ser.write(f'AT+LPCFG={preamble},{packet_type},{crc}\r\n'.encode())
 
     def send(self, data):
         self.ser.write(data + b'\r\n')  # Send data followed by a new line

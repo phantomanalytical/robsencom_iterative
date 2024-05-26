@@ -51,7 +51,7 @@ def main():
     print("Starting main function...")
     try:
         address = int(user_input("Enter the LoRa address: "))
-        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', spreading_factor=7, coding_rate=1, network_id=0)
+        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', freq=65, power=22, spreading_factor=7, coding_rate=1, network_id=0)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
@@ -75,7 +75,7 @@ def main():
         elif choice == 'receive':
             print("Device set to receive mode.")
             setting_type = user_input("Enter setting type for received files (e.g., 'power', 'spreading_factor', 'coding_rate'): ")
-            settings_count = {'power': 3, 'spreading_factor': 5, 'coding_rate': 3}
+            settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}
             i = 0
             while i < settings_count[setting_type]:
                 save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
