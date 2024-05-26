@@ -15,7 +15,7 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     """ Send an image file with specific settings and measure latency. """
     if setting_type == 'power':
         lora_comm.update_settings(power=setting_value)
-    elif setting_type == 'air_speed':
+    elif setting_strype == 'air_speed':
         lora_comm.update_settings(air_speed=setting_value)
 
     with open(file_path, 'rb') as file:
@@ -30,7 +30,7 @@ def iterative_test(lora_comm, file_path, setting_type, values):
     """ Iteratively tests different settings. """
     results = []
     for i, value in enumerate(values):
-        latency = perform_transnission(lora_comm, setting_type, value, file_path)
+        latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
     return results
@@ -58,7 +58,7 @@ def main():
                 setting_type = user_input("Choose setting to iterate (p for power, s for spreading factor, q to quit): ", ['p', 's', 'q'])
                 if setting_type == 'q':
                     break
-                if setting_type == 'p':
+                elif setting_type == 'p':
                     power_settings = [22, 17, 13, 10]
                     results = iterative_test(lora_comm, file_path, 'power', power_settings)
                     save_results(results, 'power')
@@ -68,16 +68,19 @@ def main():
                     save_results(results, 'air_speed')
         elif choice == 'receive':
             print("Device set to receive mode.")
-            while True:
-                setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
-                value = user_input(f"Enter the {setting_type} value: ")
-                save_file_path = f'/home/images/image_{setting_type}_{value}.png'
+            setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
+            settings_count = {'power': 4, 'air_speed': 8}
+            i = 0
+            while i < settings_count[setting_type]:
+                save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
                 data = lora_comm.receive_data(save_path=save_file_path)
                 if data:
-                    print(f"Data received and saved as {save_iff_ype}_{value}.png.")
-                continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
-                if continue_choice == 'no':
-                    break
+                    print(f"Data received and saved as {save_file_path}.")
+                    i += 1
+                if i < settings_count[setting_type]:
+                    continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
+                    if continue_choice == 'no':
+                        break
     except Exception as e:
         print(f"An error occurred: {e}")
 
