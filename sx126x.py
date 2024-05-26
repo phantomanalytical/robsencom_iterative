@@ -28,7 +28,7 @@ class sx126x:
     }
 
 
-    def __init__(self, serial_num='/dev/bus/usb/001/003', freq, addr, power, rssi, air_speed=2400, net_id=0, buffer_size=240, crypt=0, relay=False, lbt=False, wor=False):
+    def __init__(self, serial_num, freq, addr, power, rssi, air_speed=2400, net_id=0, buffer_size=240, crypt=0, relay=False, lbt=False, wor=False):
         self.serial_n = serial_num
         self.freq = freq
         self.addr = addr
