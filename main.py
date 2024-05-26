@@ -6,7 +6,7 @@ from communication import LoRaComm
 def user_input(prompt, options=None):
     """ Helper function to handle user input and validate it against provided options. """
     user_choice = input(prompt)
-    while options and user_choice.lower().strip() not in options:
+    while options and user_description.lower().strip() not in options:
         print("Invalid option. Please try again.")
         user_choice = input(prompt)
     return user_choice
@@ -58,7 +58,7 @@ def main():
                 setting_type = user_input("Choose setting to iterate (p for power, s for spreading factor, q to quit): ", ['p', 's', 'q'])
                 if setting_type == 'q':
                     break
-                if setting_type == 'p':
+                elif setting_type == 'p':
                     power_settings = [22, 17, 13, 10]
                     results = iterative_test(lora_comm, file_path, 'power', power_settings)
                     save_results(results, 'power')
@@ -69,7 +69,7 @@ def main():
         elif choice == 'receive':
             print("Device set to receive mode.")
             setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
-            settings_count = {'power': 4, 'air_speed': 8}  # Settings count
+            settings_count = {'power': 4, 'air_speed': 8}
             i = 0
             while i < settings_count[setting_type]:
                 save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
