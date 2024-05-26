@@ -15,8 +15,10 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     """ Send an image file with specific settings and measure latency. """
     if setting_type == 'power':
         lora_comm.update_settings(power=setting_value)
-    elif setting_type == 'air_speed':
-        lora_comm.update_settings(air_speed=setting_value)
+    elif setting_type == 'spreading_factor':
+        lora_comm.update_settings(spreading_factor=setting_value)
+    elif setting_type == 'coding_rate':
+        lora_comm.update_settings(coding_rate=setting_value)
 
     with open(file_path, 'rb') as file:
         data = file.read()
@@ -49,13 +51,13 @@ def main():
     print("Starting main function...")
     try:
         address = int(user_input("Enter the LoRa address: "))
-        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', freq=915, power=22, rssi=False, air_speed=2400)
+        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', power=22, spreading_factor=7, coding_rate=1, network_id=0)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
             file_path = user_input("Enter the path to the image file: ")
             while True:
-                setting_type = user_input("Choose setting to iterate (p for power, s for spreading factor, q to quit): ", ['p', 's', 'q'])
+                setting_type = user_input("Choose setting to iterate (p for power, s for spreading factor, c for coding rate, q to quit): ", ['p', 's', 'c', 'q'])
                 if setting_type == 'q':
                     break
                 elif setting_type == 'p':
@@ -63,13 +65,17 @@ def main():
                     results = iterative_test(lora_comm, file_path, 'power', power_settings)
                     save_results(results, 'power')
                 elif setting_type == 's':
-                    air_speeds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
-                    results = iterative_test(lora_comm, file_path, 'air_speed', air_speeds)
-                    save_results(results, 'air_speed')
+                    spreading_factors = [7, 8, 9, 10, 11, 12]
+                    results = iterative_test(lora_comm, file_path, 'spreading_factor', spreading_factors)
+                    save_results(results, 'spreading_factor')
+                elif setting_type == 'c':
+                    coding_rates = [1, 2, 3, 4]
+                    results = iterative_test(lora_comm, file_path, 'coding_rate', coding_rates)
+                    save_results(results, 'coding_rate')
         elif choice == 'receive':
             print("Device set to receive mode.")
-            setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
-            settings_count = {'power': 4, 'air_speed': 8}
+            setting_type = user_input("Enter setting type for received files (e.g., 'power', 'spreading_factor', 'coding_rate'): ")
+            settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}
             i = 0
             while i < settings_count[setting_type]:
                 save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
