@@ -51,7 +51,7 @@ def main():
     print("Starting main function...")
     try:
         address = int(user_input("Enter the LoRa address: "))
-        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', power=22, spreading_factor=7, coding_rate=1, network_id=0)
+        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', spreading_factor=7, coding_rate=1, network_id=0)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
@@ -78,7 +78,7 @@ def main():
             settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}
             i = 0
             while i < settings_count[setting_type]:
-                save_file_path = f'/home/images/image_{setting_type}_{i+1}.png'
+                save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
                 data = lora_comm.receive_data(save_path=save_file_path)
                 if data:
                     print(f"Data received and saved as {save_file_path}.")
@@ -87,7 +87,6 @@ def main():
                     continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
                     if continue_choice == 'no':
                         break
-            print("All files received.")
     except Exception as e:
         print(f"An error occurred: {e}")
 
