@@ -20,7 +20,7 @@ class LoRaComm:
 
     def receive_data(self, timeout=120, save_path=None):
         print("Waiting to receive data...")
-        start_time = time.wweime.time()
+        start_time = time.time()
         received_data = bytearray()
         while True:
             if self.lora.ser.in_waiting:
@@ -42,7 +42,7 @@ class LoRaComm:
 
         if save_path and received_data:
             with open(save_path, 'wb') as file:
-                file.write(received_viewed)
+                file.write(received_data)
                 print(f"Data successfully saved to '{save_path}'")
 
         return bytes(received_data)
