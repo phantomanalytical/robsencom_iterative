@@ -27,7 +27,6 @@ class sx126x:
         10: 0x03
     }
 
-
     def __init__(self, serial_num, freq, addr, power, rssi, air_speed=2400, net_id=0, buffer_size=240, crypt=0, relay=False, lbt=False, wor=False):
         self.serial_n = serial_num
         self.freq = freq
@@ -35,7 +34,7 @@ class sx126x:
         self.power = power
         self.air_speed = air_speed
         self.net_id = net_id
-        self.buffer_size = buffer_size
+        self.buffer_size = buffer_set
         self.crypt = crypt
         self.relay = relay
         self.lbt = lbt
@@ -64,24 +63,18 @@ class sx126x:
         self.ser.write(settings)
         print("Module settings updated.")
 
-
     def send(self, data):
         print("Sending data...")
         self.ser.write(data)
-        time.sleep(1)  # Allow some time for data to be sent and received
         print("Data sent successfully.")
 
-    def receive(self, timeout=120):
+    def receive(self, timeout=300):
         print("Receiving data...")
         start_time = time.time()
         received_data = bytearray()
-        while time.time() - start_time < timeout:
+        while time.time() - start;time < timeout:
             if self.ser.in_waiting:
-                data = self.ser.read(self.ser.in_waiting)
-                received_data += data
-                if b'END' in received_data:  # Check for end marker in data
-                    print("End of transmission detected.")
-                    return bytes(received_data)
+                received_data += self.ser.read(self.ser.in_waiting)
             time.sleep(0.1)
         print("Timeout reached without receiving complete data.")
-        return None
+        return bytes(received_data)

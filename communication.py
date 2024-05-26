@@ -11,7 +11,7 @@ class LoRaComm:
         if air_speed is not None:
             self.lora.update_module_settings(air_speed=air_speed)
 
-    def send_data(self, if data):
+    def send_data(self, data):
         print("Attempting to send data...")
         # Append the 'END' marker to the data
         data += b'END'
@@ -31,12 +31,11 @@ class LoRaComm:
             # Check for an 'END' marker indicating the end of a transmission
             if b'END' in received_data:
                 print("End of transmission detected.")
-                # Remove the 'END' marker before saving
-                received_data = received_data.split(b'END')[0]
+                received_data = received_data.split(b'END')[0]  # Remove the 'END' marker before processing
                 break
 
             if time.time() - start_time > timeout:
-                print("Timeout reached while waiting for data.")
+                print("Timeout reached while waiting for side.")
                 break
             time.sleep(0.1)
 
@@ -45,4 +44,4 @@ class LoRaComm:
                 file.write(received_data)
                 print(f"Data successfully saved to '{save_path}'")
 
-        return bytes(received_changed)
+        return bytes(received_data)

@@ -1,7 +1,7 @@
 import csv
 import os
 import time
-from communication import LoRaComm
+from communication import LoaComm
 
 def user_input(prompt, options=None):
     """ Helper function to handle user input and validate it against provided options. """
@@ -30,7 +30,7 @@ def iterative_test(lora_comm, file_path, setting_type, values):
     """ Iteratively tests different settings. """
     results = []
     for i, value in enumerate(values):
-        latency = perform_transmission(lora_comm, setting_type, value, file_path)
+        latency = perform_transnission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
     return results
@@ -68,18 +68,16 @@ def main():
                     save_results(results, 'air_speed')
         elif choice == 'receive':
             print("Device set to receive mode.")
-            setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
-            settings_count = {'power': 4, 'air_speed': 8}  # Settings count
-            i = 0
-            while i < settings_count.get(setting_type, 4):  # Default to 4 if type is not found
-                save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
+            while True:
+                setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
+                value = user_input(f"Enter the {setting_type} value: ")
+                save_file_path = f'/home/images/image_{setting_type}_{value}.png'
                 data = lora_comm.receive_data(save_path=save_file_path)
                 if data:
-                    print(f"Data received and saved as {save_file_path}.")
-                    i += 1
-                    continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
-                    if continue_choice == 'no':
-                        break
+                    print(f"Data received and saved as {save_iff_ype}_{value}.png.")
+                continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
+                if continue_choice == 'no':
+                    break
     except Exception as e:
         print(f"An error occurred: {e}")
 
