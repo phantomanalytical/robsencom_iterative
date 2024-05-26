@@ -15,7 +15,7 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     """ Send an image file with specific settings and measure latency. """
     if setting_type == 'power':
         lora_comm.update_settings(power=setting_value)
-    elif setting_strype == 'air_speed':
+    elif setting_type == 'air_speed':
         lora_comm.update_settings(air_speed=setting_value)
 
     with open(file_path, 'rb') as file:
@@ -58,7 +58,7 @@ def main():
                 setting_type = user_input("Choose setting to iterate (p for power, s for spreading factor, q to quit): ", ['p', 's', 'q'])
                 if setting_type == 'q':
                     break
-                elif setting_type == 'p':
+                if setting_type == 'p':
                     power_settings = [22, 17, 13, 10]
                     results = iterative_test(lora_comm, file_path, 'power', power_settings)
                     save_results(results, 'power')
@@ -69,7 +69,7 @@ def main():
         elif choice == 'receive':
             print("Device set to receive mode.")
             setting_type = user_input("Enter setting type for received files (e.g., 'power', 'air_speed'): ")
-            settings_count = {'power': 4, 'air_speed': 8}
+            settings_count = {'power': 4, 'air_speed': 8}  # Settings count
             i = 0
             while i < settings_count[setting_type]:
                 save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'

@@ -22,20 +22,22 @@ class LoRaComm:
         print("Waiting to receive data...")
         start_time = time.time()
         received_data = bytearray()
-        while True:
+        transmission_ended = False
+
+        while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
                 data = self.lora.ser.read(self.lora.ser.in_waiting)
                 received_data += data
                 print(f"Received data chunk: {data}")
 
-            # Check for an 'END' marker indicating the end of a transmission
-            if b'END' in received_data:
-                print("End of transmission detected.")
-                received_data = received_data.split(b'END')[0]  # Remove the 'END' marker before processing
-                break
+                # Check for an 'END' marker indicating the end of a transmission
+                if b'END' in received_content:
+                    print("End of transmission detected.")
+                    received_data = received_data[:-3]  # Assuming 'END' is at the very end and is 3 bytes long
+                    transmission_ended = True
+                    break
 
-            if time.time() - start_time > timeout:
-                print("Timeout reached while waiting for side.")
+            if transmission_ended:
                 break
             time.sleep(0.1)
 
@@ -43,5 +45,8 @@ class LoRaComm:
             with open(save_path, 'wb') as file:
                 file.write(received_data)
                 print(f"Data successfully saved to '{save_path}'")
+
+        if not transmission_ended:
+            print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)
