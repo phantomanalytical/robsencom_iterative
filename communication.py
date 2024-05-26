@@ -31,7 +31,7 @@ class LoRaComm:
                 print(f"Received data chunk: {data}")
 
                 # Check for an 'END' marker indicating the end of a transmission
-                if b'END' in received_content:
+                if b'END' in received_data:
                     print("End of transmission detected.")
                     received_data = received_data[:-3]  # Assuming 'END' is at the very end and is 3 bytes long
                     transmission_ended = True
