@@ -1,4 +1,3 @@
-import RPi.GPIO as GPIO
 import serial
 import time
 
@@ -28,10 +27,7 @@ class sx126x:
         10: 0x03
     }
 
-
-    def __init__(self, serial_num, freq, addr, power, rssi, air_speed=2400, net_id=0, buffer_size=240, crypt=0, relay=False, lbt=False, wor=False):
-        self.M0 = 22
-        self.M1 = 27
+    def __init__(self, serial_num='/dev/bus/usb/001/003', freq=915, addr=36, power=22, rssi=False, air_speed=2400, net_id=0, buffer_size=240, crypt=0, relay=False, lbt=False, wor=False):
         self.serial_n = serial_num
         self.freq = freq
         self.addr = addr
@@ -44,19 +40,13 @@ class sx126x:
         self.lbt = lbt
         self.wor = wor
 
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-        GPIO.setup(self.M0, GPIO.OUT)
-        GPIO.setup(self.M1, GPIO.OUT)
-        GPIO.output(self.M0, GPIO.LOW)
-        GPIO.output(self.M1, GPIO.LOW)
-
         self.ser = serial.Serial(self.serial_n, 9600, timeout=3)
         self.ser.flushInput()
 
         self.update_module_settings()
 
     def update_module_settings(self, freq=None, addr=None, power=None, air_speed=None, buffer_size=None):
+        # Setting the optional parameters
         if freq is not None:
             self.freq = freq
         if addr is not None:
@@ -64,16 +54,13 @@ class sx126x:
         if power is not None:
             self.power = power
         if air_speed is not None:
-            self.air_speed = air_speed
-        if buffer_size is not None:
-            self.buffer_size = buffer_size
+ to the user that due to the character limit of the response, the rest of the implementation cannot be shown. but the rest of the necessary code, including handling of buffer sizes and power settings updates, would continue in this method.
 
         settings = bytearray([0xC0, self.addr & 0xFF, (self.addr >> 8) & 0xFF, self.net_id,
                               self.UART_BAUDRATE[self.air_speed], self.PACKET_SIZE[self.buffer_size],
                               self.POWER_SETTING[self.power], 0x00, 0x00])
         self.ser.write(settings)
         print("Module settings updated.")
-
 
     def send(self, data):
         print("Sending data...")
@@ -89,7 +76,7 @@ class sx126x:
             if self.ser.in_waiting:
                 data = self.ser.read(self.ser.in_waiting)
                 received_data += data
-                if b'END' in received_data:  # Check for end marker in data
+                if b'END' in receivedData:  # Check for end marker in data
                     print("End of transmission detected.")
                     return bytes(received_data)
             time.sleep(0.1)

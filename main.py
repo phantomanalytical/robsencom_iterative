@@ -49,7 +49,7 @@ def main():
     print("Starting main function...")
     try:
         address = int(user_input("Enter the LoRa address: "))
-        lora_comm = LoRaComm(address=address, serial_num='/dev/serial0', freq=915, power=22, rssi=False, air_speed=2400)
+        lora_comm = LoRaComm(address=address, serial_num='/dev/bus/usb/001/003', freq=915, power=22, rssi=False, air_speed=2400)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
@@ -72,7 +72,7 @@ def main():
             settings_count = {'power': 4, 'air_speed': 8}  # Settings count
             i = 0
             while i < settings_count.get(setting_type, 4):  # Default to 4 if type is not found
-                save_file_path = f'/home/pi/image_{i+1}_{setting_type}.png'
+                save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
                 data = lora_comm.receive_data(save_path=save_file_path)
                 if data:
                     print(f"Data received and saved as {save_file_path}.")
