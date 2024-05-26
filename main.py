@@ -6,7 +6,7 @@ from communication import LoRaComm
 def user_input(prompt, options=None):
     """ Helper function to handle user input and validate it against provided options. """
     user_choice = input(prompt)
-    while options and user_description.lower().strip() not in options:
+    while options and user_choice.lower().strip() not in options:
         print("Invalid option. Please try again.")
         user_choice = input(prompt)
     return user_choice
