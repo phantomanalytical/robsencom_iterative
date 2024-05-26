@@ -87,6 +87,7 @@ def main():
                     continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
                     if continue_choice == 'no':
                         break
+            print("All files received.")
     except Exception as e:
         print(f"An error occurred: {e}")
 

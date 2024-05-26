@@ -3,11 +3,7 @@ import time
 
 class LoRaComm:
     def __init__(self, address=36, serial_num='/dev/ttyACM0', power=22, spreading_factor=7, coding_rate=1, network_id=0):
-        self.lora = sx126x(serial_num=serial_num, address=address, net_id=network_id)
-        # Set other settings
-        self.lora.set_power(power)
-        self.lora.set_spreading_factor(spreading_factor)
-        self.lora.set_coding_rate(coding_rate)
+        self.lora = sx126x(serial_num=serial_num, address=address, power=power, spreading_factor=spreading_factor, coding_rate=coding_rate, network_id=network_id)
 
     def update_settings(self, power=None, spreading_factor=None, coding_rate=None, address=None, network_id=None):
         if power is not None:
@@ -43,7 +39,7 @@ class LoRaComm:
                 # Check for an 'END' marker indicating the end of a transmission
                 if b'END' in received_data:
                     print("End of transmission detected.")
-                    received_data = received_data[:-3]  # Remove the 'END' marker before processing
+                    received_data = received_data.split(b'END')[0]  # Remove the 'END' marker before processing
                     transmission_ended = True
                     break
 
