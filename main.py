@@ -75,7 +75,7 @@ def main():
         elif choice == 'receive':
             print("Device set to receive mode.")
             setting_type = user_input("Enter setting type for received files (e.g., 'power', 'spreading_factor', 'coding_rate'): ")
-            settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}
+            settings_count = {'power': 3, 'spreading_factor': 5, 'coding_rate': 3}
             i = 0
             while i < settings_count[setting_type]:
                 save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
