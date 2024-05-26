@@ -78,7 +78,7 @@ def main():
             settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}
             i = 0
             while i < settings_count[setting_type]:
-                save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
+                save_file_path = f'/home/images/image_{setting_type}_{i+1}.png'
                 data = lora_comm.receive_data(save_path=save_file_path)
                 if data:
                     print(f"Data received and saved as {save_file_path}.")
