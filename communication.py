@@ -1,6 +1,5 @@
 from sx126x import sx126x
 import time
-import struct
 
 class LoRaComm:
     def __init__(self, address=36, serial_num='/dev/ttyACM0', net_id=0):
@@ -22,17 +21,17 @@ class LoRaComm:
     def send_data(self, data, filename):
         print("Attempting to send data...")
         file_size = len(data)
-        # Pack the metadata (file size and filename) into the start of the data
-        metadata = struct.pack('<I', file_size) + filename.encode('utf-8') + b'\x00'
-        data_with_metadata = metadata + data + b'END'
-        self.lora.send(data_with_metadata)
+        header = f"FILENAME:{filename},SIZE:{file_size}\n".encode()
+        self.lora.send(header + data + b'END')
         print("Data sent.")
 
-    def receive_data(self, timeout=300, save_dir='/home/images/'):
+    def receive_data(self, timeout=300, save_path=None):
         print("Waiting to receive data...")
         start_time = time.time()
         received_data = bytearray()
-        transmission_ended = False
+        header_received = False
+        file_size = 0
+        filename = ""
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
@@ -40,27 +39,33 @@ class LoRaComm:
                 received_data += data
                 print(f"Received data chunk: {data}")
 
-                if b'END' in received_data:
-                    print("End of transmission detected.")
-                    received_data = received_data.split(b'END')[0]
-                    transmission_ended = True
+                if not header_received:
+                    if b'\n' in received_data:
+                        header, received_data = received_data.split(b'\n', 1)
+                        header = header.decode()
+                        if "FILENAME:" in header and "SIZE:" in header:
+                            header_received = True
+                            filename = header.split("FILENAME:")[1].split(",")[0]
+                            file_size = int(header.split("SIZE:")[1])
+                            print(f"Receiving file: {filename} of size {file_size} bytes")
+                
+                if header_received and len(received_data) >= file_size:
+                    if b'END' in received_data[-3:]:
+                        received_data = received_data[:-3]  # Remove the 'END' marker
                     break
+
             time.sleep(0.1)
 
-        if transmission_ended:
-            # Extract metadata from the beginning of the received data
-            file_size = struct.unpack('<I', received_data[:4])[0]
-            filename = received_data[4:].split(b'\x00')[0].decode('utf-8')
-            file_data = received_data[4 + len(filename) + 1:]  # +1 for null terminator
+        if header_received and save_path:
+            with open(save_path, 'wb') as file:
+                file.write(received_data[:file_size])
+                print(f"Data successfully saved to '{save_path}'")
+        elif header_received:
+            with open(filename, 'wb') as file:
+                file.write(received_data[:file_size])
+                print(f"Data successfully saved to '{filename}'")
 
-            if len(file_data) == file_size:
-                save_path = save_dir + filename
-                with open(save_path, 'wb') as file:
-                    file.write(file_data)
-                    print(f"Data successfully saved to '{save_path}'")
-            else:
-                print("File size mismatch. Data might be incomplete or corrupted.")
-        else:
-            print("Timeout reached without detecting end of transmission.")
+        if not header_received:
+            print("Timeout reached without detecting the file header.")
 
         return bytes(received_data)

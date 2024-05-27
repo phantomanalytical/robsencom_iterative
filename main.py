@@ -36,7 +36,6 @@ def iterative_test(lora_comm, file_path, setting_type, values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
-        # Add a delay to ensure the receiving device has time to process the file
         time.sleep(5)  # Adjust the sleep duration as needed
     return results
 
@@ -81,8 +80,10 @@ def main():
             settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}
             i = 0
             while i < settings_count[setting_type]:
-                data = lora_comm.receive_data()
+                save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
+                data = lora_comm.receive_data(save_path=save_file_path)
                 if data:
+                    print(f"Data received and saved as {save_file_path}.")
                     i += 1
                 if i < settings_count[setting_type]:
                     continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
