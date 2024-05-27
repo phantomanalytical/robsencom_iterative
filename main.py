@@ -22,9 +22,10 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
 
     with open(file_path, 'rb') as file:
         data = file.read()
-
+    
+    filename = os.path.basename(file_path)
     start_time = time.time()
-    lora_comm.send_data(data)
+    lora_comm.send_data(data, filename)
     latency = time.time() - start_time
     return latency
 
@@ -35,6 +36,8 @@ def iterative_test(lora_comm, file_path, setting_type, values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
+        # Add a delay to ensure the receiving device has time to process the file
+        time.sleep(5)  # Adjust the sleep duration as needed
     return results
 
 def save_results(results, setting_type):
@@ -51,7 +54,7 @@ def main():
     print("Starting main function...")
     try:
         address = int(user_input("Enter the LoRa address: "))
-        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', freq=65, power=22, spreading_factor=7, coding_rate=1, network_id=0)
+        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=0)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
@@ -78,10 +81,8 @@ def main():
             settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}
             i = 0
             while i < settings_count[setting_type]:
-                save_file_path = f'/home/images/image_{i+1}_{setting_type}.png'
-                data = lora_comm.receive_data(save_path=save_file_path)
+                data = lora_comm.receive_data()
                 if data:
-                    print(f"Data received and saved as {save_file_path}.")
                     i += 1
                 if i < settings_count[setting_type]:
                     continue_choice = user_input("Continue receiving? (yes/no): ", ['yes', 'no'])
