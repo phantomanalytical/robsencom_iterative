@@ -17,6 +17,7 @@ class sx126x:
         self.set_power(22)  # Set the power to maximum
         self.set_spreading_factor(7)  # Set the default spreading factor
         self.set_coding_rate(1)  # Set the default coding rate
+        self.set_irq()  # Configure IRQ
         self.ser.write(b'AT+EXIT\r\n')  # Exit AT command mode
 
     def set_frequency(self, channel):
@@ -32,14 +33,9 @@ class sx126x:
     def set_coding_rate(self, cr):
         self.ser.write(f'AT+CR={cr}\r\n'.encode())
 
-    def set_address(self, address):
-        self.ser.write(f'AT+ADDR={address}\r\n'.encode())
-
-    def set_network_id(self, net_id):
-        self.ser.write(f'AT+NETID={net_id}\r\n'.encode())
-
-    def set_lpcfg(self, preamble, packet_type, crc):
-        self.ser.write(f'AT+LPCFG={preamble},{packet_type},{crc}\r\n'.encode())
+    def set_irq(self):
+        # Assuming AT+IRQ is the command to set the interrupt for packet reception
+        self.ser.write(b'AT+IRQ=RX_DONE\r\n')  # Set IRQ for packet reception complete
 
     def send(self, data):
         self.ser.write(data + b'\r\n')  # Send data followed by a new line
@@ -54,6 +50,20 @@ class sx126x:
             if self.ser.in_waiting:
                 data = self.ser.read(self.ser.in_waiting)
                 received_data += data
+                if self.check_irq():  # Check if IRQ was triggered
+                    print("Packet reception completed.")
+                    break
             time.sleep(0.1)
-        print("Timeout reached without receiving complete data.")
+        if not received_data:
+            print("Timeout reached without receiving complete data.")
         return bytes(received_data)
+
+    def check_irq(self):
+        # Check if IRQ was triggered
+        self.ser.write(b'AT+IRQ?\r\n')  # Command to check IRQ status
+        irq_status = self.ser.read(self.ser.in_waiting)
+        return b'RX_DONE' in irq_status
+
+# You can use this class by specifying the serial number like so:
+# device = sx126x('/dev/ttyACM0')
+# Then use the device object to send and receive data.

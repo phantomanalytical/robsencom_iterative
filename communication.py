@@ -22,7 +22,7 @@ class LoRaComm:
         print("Attempting to send data...")
         file_size = len(data)
         header = f"FILENAME:{filename},SIZE:{file_size}\n".encode()
-        self.lora.send(header + data + b'END_OF_FILE')
+        self.lora.send(header + data)
         print("Data sent.")
 
     def receive_data(self, timeout=300, save_path=None):
@@ -50,8 +50,7 @@ class LoRaComm:
                             file_size = int(header.split("SIZE:")[1])
                             print(f"Receiving file: {filename} of size {file_size} bytes")
 
-                if header_received and b'END_OF_FILE' in received_data:
-                    received_data = received_data.split(b'END_OF_FILE')[0]
+                if header_received and len(received_data) >= file_size:
                     transmission_ended = True
                     print("End of transmission detected.")
                     break
