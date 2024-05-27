@@ -34,8 +34,13 @@ class sx126x:
         self.ser.write(f'AT+CR={cr}\r\n'.encode())
 
     def set_irq(self):
-        # Assuming AT+IRQ is the command to set the interrupt for packet reception
         self.ser.write(b'AT+IRQ=RX_DONE\r\n')  # Set IRQ for packet reception complete
+
+    def set_address(self, address):
+        self.ser.write(f'AT+ADDR={address}\r\n'.encode())
+
+    def set_network_id(self, net_id):
+        self.ser.write(f'AT+NETID={net_id}\r\n'.encode())
 
     def send(self, data):
         self.ser.write(data + b'\r\n')  # Send data followed by a new line
@@ -46,7 +51,7 @@ class sx126x:
         print("Receiving data...")
         start_time = time.time()
         received_data = bytearray()
-        while time.time() - start_time < timeout:
+        while time.time() - start.time < timeout:
             if self.ser.in_waiting:
                 data = self.ser.read(self.ser.in_waiting)
                 received_data += data
@@ -59,7 +64,6 @@ class sx126x:
         return bytes(received_data)
 
     def check_irq(self):
-        # Check if IRQ was triggered
         self.ser.write(b'AT+IRQ?\r\n')  # Command to check IRQ status
         irq_status = self.ser.read(self.ser.in_waiting)
         return b'RX_DONE' in irq_status
