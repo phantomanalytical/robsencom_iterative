@@ -22,7 +22,7 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
 
     with open(file_path, 'rb') as file:
         data = file.read()
-    
+
     filename = os.path.basename(file_path)
     start_time = time.time()
     lora_comm.send_data(data, filename)

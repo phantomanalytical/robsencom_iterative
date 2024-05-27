@@ -22,7 +22,7 @@ class LoRaComm:
         print("Attempting to send data...")
         file_size = len(data)
         header = f"FILENAME:{filename},SIZE:{file_size}\n".encode()
-        self.lora.send(header + data + b'END')
+        self.lora.send(header + data + b'END_OF_FILE')
         print("Data sent.")
 
     def receive_data(self, timeout=300, save_path=None):
@@ -32,6 +32,7 @@ class LoRaComm:
         header_received = False
         file_size = 0
         filename = ""
+        transmission_ended = False
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
@@ -48,24 +49,25 @@ class LoRaComm:
                             filename = header.split("FILENAME:")[1].split(",")[0]
                             file_size = int(header.split("SIZE:")[1])
                             print(f"Receiving file: {filename} of size {file_size} bytes")
-                
-                if header_received and len(received_data) >= file_size:
-                    if b'END' in received_data[-3:]:
-                        received_data = received_data[:-3]  # Remove the 'END' marker
+
+                if header_received and b'END_OF_FILE' in received_data:
+                    received_data = received_data.split(b'END_OF_FILE')[0]
+                    transmission_ended = True
+                    print("End of transmission detected.")
                     break
 
             time.sleep(0.1)
 
-        if header_received and save_path:
+        if transmission_ended and save_path:
             with open(save_path, 'wb') as file:
-                file.write(received_data[:file_size])
+                file.write(received_data)
                 print(f"Data successfully saved to '{save_path}'")
-        elif header_received:
+        elif transmission_ended:
             with open(filename, 'wb') as file:
-                file.write(received_data[:file_size])
+                file.write(received_data)
                 print(f"Data successfully saved to '{filename}'")
 
-        if not header_received:
-            print("Timeout reached without detecting the file header.")
+        if not transmission_ended:
+            print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)
