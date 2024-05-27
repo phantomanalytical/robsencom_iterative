@@ -63,9 +63,10 @@ class LoRaComm:
                 file.write(received_data)
                 print(f"Data successfully saved to '{save_path}'")
         elif transmission_ended:
-            with open(filename, 'wb') as file:
+            save_path = f'/home/images/{filename}'
+            with open(save_path, 'wb') as file:
                 file.write(received_data)
-                print(f"Data successfully saved to '{filename}'")
+                print(f"Data successfully saved to '{save_path}'")
 
         if not transmission_ended:
             print("Timeout reached without detecting end of transmission.")
