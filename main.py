@@ -4,6 +4,7 @@ import time
 from communication import LoRaComm
 
 def user_input(prompt, options=None):
+    """ Helper function to handle user input and validate it against provided options. """
     user_choice = input(prompt)
     while options and user_choice.lower().strip() not in options:
         print("Invalid option. Please try again.")
@@ -11,10 +12,11 @@ def user_input(prompt, options=None):
     return user_choice
 
 def perform_transmission(lora_comm, setting_type, setting_value, file_path):
+    """ Send an image file with specific settings and measure latency. """
     if setting_type == 'power':
         lora_comm.update_settings(power=setting_value)
-    elif setting_type == 'spreading_factor':
-        lora_comm.update_settings(spreading_factor=setting_value)
+    elif setting_type == 'air_speed':
+        lora_comm.update_settings(air_speed=setting_value)
     elif setting_type == 'coding_rate':
         lora_comm.update_settings(coding_rate=setting_value)
 
@@ -27,15 +29,17 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     return latency
 
 def iterative_test(lora_comm, file_path, setting_type, values):
+    """ Iteratively tests different settings. """
     results = []
     for i, value in enumerate(values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
-        time.sleep(5)
+        time.sleep(5)  # Delay between iterations
     return results
 
 def save_results(results, setting_type):
+    """ Saves the test results into a CSV file. """
     filename = f"{setting_type}_results.csv"
     with open(filename, 'w', newline='') as file:
         writer = csv.writer(file)
@@ -48,8 +52,8 @@ def main():
     print("Starting main function...")
     try:
         address = int(user_input("Enter the LoRa address: "))
-        network_id = int(user_input("Enter the network ID: "))
-        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=network_id)
+        net_id = int(user_input("Enter the network ID: "))
+        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=net_id)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
@@ -63,8 +67,8 @@ def main():
                     results = iterative_test(lora_comm, file_path, 'power', power_settings)
                     save_results(results, 'power')
                 elif setting_type == 's':
-                    spreading_factors = [7, 8, 9, 10, 11, 12]
-                    results = iterative_test(lora_comm, file_path, 'spreading_factor', spreading_factors)
+                    air_speeds = [7, 8, 9, 10, 11, 12]  # Example spreading factor values
+                    results = iterative_test(lora_comm, file_path, 'spreading_factor', air_speeds)
                     save_results(results, 'spreading_factor')
                 elif setting_type == 'c':
                     coding_rates = [1, 2, 3, 4]
