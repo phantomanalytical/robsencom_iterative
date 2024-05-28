@@ -22,8 +22,18 @@ class LoRaComm:
     def send_data(self, data, filename):
         print("Attempting to send data...")
         file_size = len(data)
-        header = f"FILENAME:{filename},SIZE:{file_size}\n".encode('utf-8')
-        self.lora.send(header + data + b'END_OF_FILE')
+        chunk_size = 240  # Chunk size is 240 bytes
+        num_chunks = (file_size + chunk_size - 1) // chunk_size
+
+        header = f"FILENAME:{filename},SIZE:{file_size},CHUNKS:{num_chunks}\n".encode('utf-8')
+        self.lora.send(header)
+        
+        for i in range(num_chunks):
+            chunk = data[i * chunk_size:(i + 1) * chunk_size]
+            self.lora.send(chunk)
+            time.sleep(0.1)  # Small delay between chunks
+
+        self.lora.send(b'END_OF_FILE')
         print("Data sent.")
 
     def receive_data(self, timeout=300, save_path=None):
@@ -32,6 +42,7 @@ class LoRaComm:
         received_data = bytearray()
         header_received = False
         file_size = 0
+        num_chunks = 0
         filename = ""
         transmission_ended = False
 
@@ -45,11 +56,12 @@ class LoRaComm:
                     if b'\n' in received_data:
                         header, received_data = received_data.split(b'\n', 1)
                         header = header.decode('utf-8')
-                        if "FILENAME:" in header and "SIZE:" in header:
+                        if "FILENAME:" in header and "SIZE:" in header and "CHUNKS:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
-                            file_size = int(header.split("SIZE:")[1])
-                            print(f"Receiving file: {filename} of size {file_size} bytes")
+                            file_size = int(header.split("SIZE:")[1].split(",")[0])
+                            num_chunks = int(header.split("CHUNKS:")[1])
+                            print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
 
                 if header_received and b'END_OF_FILE' in received_data:
                     received_data = received_data.split(b'END_OF_FILE')[0]
