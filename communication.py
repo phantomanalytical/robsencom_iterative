@@ -22,18 +22,14 @@ class LoRaComm:
     def send_data(self, data, filename):
         print("Attempting to send data...")
         file_size = len(data)
-        chunk_size = 240  # Chunk size is 240 bytes
-        num_chunks = (file_size + chunk_size - 1) // chunk_size
+        file_hash = hashlib.sha256(data).hexdigest()
+        header = f"FILENAME:{filename},SIZE:{file_size},HASH:{file_hash}\n".encode()
+        chunk_size = 240
 
-        header = f"FILENAME:{filename},SIZE:{file_size},CHUNKS:{num_chunks}\n".encode('utf-8')
-        self.lora.send(header)
-        
-        for i in range(num_chunks):
-            chunk = data[i * chunk_size:(i + 1) * chunk_size]
-            self.lora.send(chunk)
-            time.sleep(0.1)  # Small delay between chunks
-
-        self.lora.send(b'END_OF_FILE')
+        for i in range(0, len(data), chunk_size):
+            chunk = data[i:i+chunk_size]
+            self.lora.send(header + chunk + b'END_OF_FILE')
+            time.sleep(1)  # Short delay between sending chunks
         print("Data sent.")
 
     def receive_data(self, timeout=300, save_path=None):
@@ -42,7 +38,7 @@ class LoRaComm:
         received_data = bytearray()
         header_received = False
         file_size = 0
-        num_chunks = 0
+        file_hash = ""
         filename = ""
         transmission_ended = False
 
@@ -55,13 +51,13 @@ class LoRaComm:
                 if not header_received:
                     if b'\n' in received_data:
                         header, received_data = received_data.split(b'\n', 1)
-                        header = header.decode('utf-8')
-                        if "FILENAME:" in header and "SIZE:" in header and "CHUNKS:" in header:
+                        header = header.decode()
+                        if "FILENAME:" in header and "SIZE:" in header and "HASH:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
                             file_size = int(header.split("SIZE:")[1].split(",")[0])
-                            num_chunks = int(header.split("CHUNKS:")[1])
-                            print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
+                            file_hash = header.split("HASH:")[1]
+                            print(f"Receiving file: {filename} of size {file_size} bytes with hash {file_hash}")
 
                 if header_received and b'END_OF_FILE' in received_data:
                     received_data = received_data.split(b'END_OF_FILE')[0]
@@ -71,31 +67,24 @@ class LoRaComm:
 
             time.sleep(0.1)
 
-        if transmission_ended and save_path:
-            with open(save_path, 'wb') as file:
-                file.write(received_data)
-                print(f"Data successfully saved to '{save_path}'")
-        elif transmission_ended:
-            save_path = f'/home/images/{filename}'
-            with open(save_path, 'wb') as file:
-                file.write(received_data)
-                print(f"Data successfully saved to '{save_path}'")
-
-        if not transmission_ended:
+        if transmission_ended:
+            # Remove any extra characters that might have been included
+            received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')
+            calculated_hash = hashlib.sha256(received_data).hexdigest()
+            if calculated_hash == file_hash:
+                if save_path:
+                    with open(save_path, 'wb') as file:
+                        file.write(received_data)
+                        print(f"Data successfully saved to '{save_path}'")
+                else:
+                    save_path = f'/home/images/{filename}'
+                    with open(save_path, 'wb') as file:
+                        file.write(received_data)
+                        print(f"Data successfully saved to '{save_path}'")
+                print("File hash validation successful.")
+            else:
+                print("File hash validation failed.")
+        else:
             print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)
-
-    def verify_file_integrity(self, original_file_path, received_file_path):
-        with open(original_file_path, 'rb') as original_file:
-            original_data = original_file.read()
-        with open(received_file_path, 'rb') as received_file:
-            received_data = received_file.read()
-
-        original_hash = hashlib.md5(original_data).hexdigest()
-        received_hash = hashlib.md5(received_data).hexdigest()
-
-        print(f"Original file hash: {original_hash}")
-        print(f"Received file hash: {received_hash}")
-
-        return original_hash == received_hash
