@@ -20,19 +20,25 @@ class LoRaComm:
 
     def send_data(self, data, filename):
         print("Attempting to send data...")
-        file_size = len(data)
-        header = f"FILENAME:{filename},SIZE:{file_size}\n".encode()
-        self.lora.send(header + data + b'END_OF_FILE')
-        print("Data sent.")
+        chunk_size = 240  # Example chunk size
+        num_chunks = (len(data) + chunk_size - 1) // chunk_size
+        header = f"FILENAME:{filename},CHUNKS:{num_chunks}\n".encode()
+        self.lora.send(header)
+        for i in range(num_chunks):
+            chunk = data[i * chunk_size: (i + 1) * chunk_size]
+            packet = f"SEQ:{i + 1}\n".encode() + chunk
+            self.lora.send(packet)
+            time.sleep(0.1)  # Small delay between chunks
+        self.lora.send(b'END_OF_FILE')
 
     def receive_data(self, timeout=300, save_path=None):
         print("Waiting to receive data...")
         start_time = time.time()
         received_data = bytearray()
         header_received = False
-        file_size = 0
+        chunks_expected = 0
+        chunks_received = {}
         filename = ""
-        transmission_ended = False
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
@@ -44,31 +50,43 @@ class LoRaComm:
                     if b'\n' in received_data:
                         header, received_data = received_data.split(b'\n', 1)
                         header = header.decode()
-                        if "FILENAME:" in header and "SIZE:" in header:
+                        if "FILENAME:" in header and "CHUNKS:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
-                            file_size = int(header.split("SIZE:")[1])
-                            print(f"Receiving file: {filename} of size {file_size} bytes")
+                            chunks_expected = int(header.split("CHUNKS:")[1])
+                            print(f"Receiving file: {filename} with {chunks_expected} chunks")
 
                 if header_received and b'END_OF_FILE' in received_data:
-                    received_data = received_data.split(b'END_OF_FILE')[0]
-                    transmission_ended = True
                     print("End of transmission detected.")
+                    received_data = received_data.split(b'END_OF_FILE')[0]
                     break
+
+                if header_received and b'\n' in received_data:
+                    while b'\n' in received_data:
+                        packet, received_data = received_data.split(b'\n', 1)
+                        packet = packet.decode()
+                        if "SEQ:" in packet:
+                            seq_num = int(packet.split("SEQ:")[1])
+                            chunks_received[seq_num] = received_data[:chunk_size]
+                            received_data = received_data[chunk_size:]
 
             time.sleep(0.1)
 
-        if transmission_ended and save_path:
-            with open(save_path, 'wb') as file:
-                file.write(received_data)
-                print(f"Data successfully saved to '{save_path}'")
-        elif transmission_ended:
-            save_path = f'/home/images/{filename}'
-            with open(save_path, 'wb') as file:
-                file.write(received_data)
-                print(f"Data successfully saved to '{save_path}'")
+        if len(chunks_received) == chunks_expected:
+            full_data = bytearray()
+            for i in range(1, chunks_expected + 1):
+                full_data += chunks_received[i]
 
-        if not transmission_ended:
-            print("Timeout reached without detecting end of transmission.")
+            if save_path:
+                with open(save_path, 'wb') as file:
+                    file.write(full_data)
+                    print(f"Data successfully saved to '{save_path}'")
+            else:
+                save_path = f'/home/images/{filename}'
+                with open(save_path, 'wb') as file:
+                    file.write(full_data)
+                    print(f"Data successfully saved to '{save_path}'")
+        else:
+            print("Timeout reached without detecting end of transmission or missing chunks.")
 
         return bytes(received_data)

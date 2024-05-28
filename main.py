@@ -4,7 +4,6 @@ import time
 from communication import LoRaComm
 
 def user_input(prompt, options=None):
-    """ Helper function to handle user input and validate it against provided options. """
     user_choice = input(prompt)
     while options and user_choice.lower().strip() not in options:
         print("Invalid option. Please try again.")
@@ -12,7 +11,6 @@ def user_input(prompt, options=None):
     return user_choice
 
 def perform_transmission(lora_comm, setting_type, setting_value, file_path):
-    """ Send an image file with specific settings and measure latency. """
     if setting_type == 'power':
         lora_comm.update_settings(power=setting_value)
     elif setting_type == 'spreading_factor':
@@ -24,22 +22,20 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
         data = file.read()
 
     start_time = time.time()
-    lora_comm.send_data(data, f"{setting_type}_{setting_value}.png")
+    lora_comm.send_data(data, os.path.basename(file_path))
     latency = time.time() - start_time
     return latency
 
 def iterative_test(lora_comm, file_path, setting_type, values):
-    """ Iteratively tests different settings. """
     results = []
     for i, value in enumerate(values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
-        time.sleep(5)  # Add a 5-second delay between each transmission
+        time.sleep(5)
     return results
 
 def save_results(results, setting_type):
-    """ Saves the test results into a CSV file. """
     filename = f"{setting_type}_results.csv"
     with open(filename, 'w', newline='') as file:
         writer = csv.writer(file)
