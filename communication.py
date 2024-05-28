@@ -1,5 +1,6 @@
 from sx126x import sx126x
 import time
+import hashlib
 
 class LoRaComm:
     def __init__(self, address=36, serial_num='/dev/ttyACM0', net_id=0):
@@ -22,15 +23,18 @@ class LoRaComm:
         print("Attempting to send data...")
         file_size = len(data)
         chunk_size = 240  # Define chunk size
-        header = f"FILENAME:{filename},SIZE:{file_size}\n".encode('utf-8')
+        file_hash = hashlib.md5(data).hexdigest()
+        header = f"FILENAME:{filename},SIZE:{file_size},HASH:{file_hash}\n".encode('utf-8')
         
         # Send the header
         self.lora.send(header)
+        print(f"Sent header: {header}")
 
         # Split data into chunks and send each chunk
         for i in range(0, len(data), chunk_size):
             chunk = data[i:i + chunk_size]
             self.lora.send(chunk)
+            print(f"Sent chunk: {chunk}")
             time.sleep(0.1)  # Small delay between chunks
 
         # Send end marker
@@ -44,6 +48,7 @@ class LoRaComm:
         header_received = False
         file_size = 0
         filename = ""
+        expected_hash = ""
         transmission_ended = False
 
         while time.time() - start_time < timeout:
@@ -56,11 +61,12 @@ class LoRaComm:
                     if b'\n' in received_data:
                         header, received_data = received_data.split(b'\n', 1)
                         header = header.decode('utf-8')
-                        if "FILENAME:" in header and "SIZE:" in header:
+                        if "FILENAME:" in header and "SIZE:" in header and "HASH:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
-                            file_size = int(header.split("SIZE:")[1])
-                            print(f"Receiving file: {filename} of size {file_size} bytes")
+                            file_size = int(header.split("SIZE:")[1].split(",")[0])
+                            expected_hash = header.split("HASH:")[1]
+                            print(f"Receiving file: {filename} of size {file_size} bytes with hash {expected_hash}")
 
                 if header_received and b'END_OF_FILE' in received_data:
                     received_data = received_data.split(b'END_OF_FILE')[0]
@@ -70,17 +76,16 @@ class LoRaComm:
 
             time.sleep(0.1)
 
-        if transmission_ended and save_path:
-            with open(save_path, 'wb') as file:
-                file.write(received_data)
-                print(f"Data successfully saved to '{save_path}'")
-        elif transmission_ended:
-            save_path = f'/home/images/{filename}'
-            with open(save_path, 'wb') as file:
-                file.write(received_data)
-                print(f"Data successfully saved to '{save_path}'")
-
-        if not transmission_ended:
+        if transmission_ended:
+            received_hash = hashlib.md5(received_data).hexdigest()
+            if received_hash == expected_hash:
+                save_path = save_path if save_path else f'/home/images/{filename}'
+                with open(save_path, 'wb') as file:
+                    file.write(received_data)
+                    print(f"Data successfully saved to '{save_path}'")
+            else:
+                print("File hash mismatch. Transmission error detected.")
+        else:
             print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)

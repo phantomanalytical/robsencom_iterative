@@ -15,8 +15,8 @@ def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     """ Send an image file with specific settings and measure latency. """
     if setting_type == 'power':
         lora_comm.update_settings(power=setting_value)
-    elif setting_type == 'air_speed':
-        lora_comm.update_settings(air_speed=setting_value)
+    elif setting_type == 'spreading_factor':
+        lora_comm.update_settings(spreading_factor=setting_value)
     elif setting_type == 'coding_rate':
         lora_comm.update_settings(coding_rate=setting_value)
 
@@ -67,8 +67,8 @@ def main():
                     results = iterative_test(lora_comm, file_path, 'power', power_settings)
                     save_results(results, 'power')
                 elif setting_type == 's':
-                    air_speeds = [7, 8, 9, 10, 11, 12]  # Example spreading factor values
-                    results = iterative_test(lora_comm, file_path, 'spreading_factor', air_speeds)
+                    spreading_factors = [7, 8, 9, 10, 11, 12]  # Example spreading factor values
+                    results = iterative_test(lora_comm, file_path, 'spreading_factor', spreading_factors)
                     save_results(results, 'spreading_factor')
                 elif setting_type == 'c':
                     coding_rates = [1, 2, 3, 4]
