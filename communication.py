@@ -26,9 +26,11 @@ class LoRaComm:
         header = f"FILENAME:{filename},SIZE:{file_size},HASH:{file_hash}\n".encode()
         chunk_size = 240
 
-        for i in range(0, len(data), chunk_size):
-            chunk = data[i:i+chunk_size]
-            self.lora.send(header + chunk + b'END_OF_FILE')
+        num_chunks = (file_size // chunk_size) + (1 if file_size % chunk_size != 0 else 0)
+        for i in range(num_chunks):
+            chunk = data[i*chunk_size:(i+1)*chunk_size]
+            sequence_number = f"{i}/{num_chunks-1}".encode()
+            self.lora.send(header + sequence_number + b':' + chunk + b'END_OF_FILE')
             time.sleep(1)  # Short delay between sending chunks
         print("Data sent.")
 
@@ -42,16 +44,16 @@ class LoRaComm:
         filename = ""
         transmission_ended = False
         total_received_size = 0
+        chunks = {}
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
                 data = self.lora.ser.read(self.lora.ser.in_waiting)
-                received_data += data
                 print(f"Received data chunk: {data}")
 
                 if not header_received:
-                    if b'\n' in received_data:
-                        header, received_data = received_data.split(b'\n', 1)
+                    if b'\n' in data:
+                        header, data = data.split(b'\n', 1)
                         header = header.decode()
                         if "FILENAME:" in header and "SIZE:" in header and "HASH:" in header:
                             header_received = True
@@ -61,19 +63,27 @@ class LoRaComm:
                             print(f"Receiving file: {filename} of size {file_size} bytes with hash {file_hash}")
 
                 if header_received:
-                    if b'END_OF_FILE' in received_data:
-                        received_data = received_data.replace(b'END_OF_FILE', b'')
-                        total_received_size += len(received_data)
-                        if total_received_size >= file_size:
-                            transmission_ended = True
-                            print("End of transmission detected.")
-                            break
+                    sequence_number, chunk = data.split(b':', 1)
+                    sequence_number = sequence_number.decode().split('/')
+                    chunk_index = int(sequence_number[0])
+                    total_chunks = int(sequence_number[1])
+                    chunks[chunk_index] = chunk
+
+                    if b'END_OF_FILE' in chunk:
+                        chunk = chunk.replace(b'END_OF_FILE', b'')
+                        transmission_ended = True
+                        print("End of transmission detected.")
+                        break
+
+                    if len(chunks) == (total_chunks + 1):
+                        transmission_ended = True
+                        print("All chunks received.")
+                        break
 
             time.sleep(0.1)
 
         if transmission_ended:
-            # Remove any extra characters that might have been included
-            received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')
+            received_data = b''.join([chunks[i] for i in sorted(chunks)])
             calculated_hash = hashlib.sha256(received_data).hexdigest()
             if calculated_hash == file_hash:
                 if save_path:

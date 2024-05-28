@@ -52,8 +52,8 @@ def main():
     print("Starting main function...")
     try:
         address = int(user_input("Enter the LoRa address: "))
-        net_id = int(user_input("Enter the network ID: "))
-        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=net_id)
+        network_id = int(user_input("Enter the network ID: "))
+        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=network_id)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
