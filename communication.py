@@ -41,6 +41,7 @@ class LoRaComm:
         file_hash = ""
         filename = ""
         transmission_ended = False
+        total_received_size = 0
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
@@ -59,11 +60,14 @@ class LoRaComm:
                             file_hash = header.split("HASH:")[1]
                             print(f"Receiving file: {filename} of size {file_size} bytes with hash {file_hash}")
 
-                if header_received and b'END_OF_FILE' in received_data:
-                    received_data = received_data.split(b'END_OF_FILE')[0]
-                    transmission_ended = True
-                    print("End of transmission detected.")
-                    break
+                if header_received:
+                    if b'END_OF_FILE' in received_data:
+                        received_data = received_data.replace(b'END_OF_FILE', b'')
+                        total_received_size += len(received_data)
+                        if total_received_size >= file_size:
+                            transmission_ended = True
+                            print("End of transmission detected.")
+                            break
 
             time.sleep(0.1)
 
