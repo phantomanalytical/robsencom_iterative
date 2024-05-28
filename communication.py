@@ -20,73 +20,80 @@ class LoRaComm:
 
     def send_data(self, data, filename):
         print("Attempting to send data...")
-        chunk_size = 240  # Example chunk size
-        num_chunks = (len(data) + chunk_size - 1) // chunk_size
-        header = f"FILENAME:{filename},CHUNKS:{num_chunks}\n".encode()
+        chunk_size = 240  # Define chunk size
+        num_chunks = len(data) // chunk_size + (1 if len(data) % chunk_size != 0 else 0)
+        header = f"FILENAME:{filename},SIZE:{len(data)},CHUNKS:{num_chunks}\n".encode()
+
+        # Send header
         self.lora.send(header)
+        time.sleep(1)  # Small delay between sending header and data
+
+        # Send data chunks
         for i in range(num_chunks):
-            chunk = data[i * chunk_size: (i + 1) * chunk_size]
-            packet = f"SEQ:{i + 1}\n".encode() + chunk
+            chunk = data[i * chunk_size:(i + 1) * chunk_size]
+            packet = f"SEQ:{i + 1}/#{num_chunks}\n".encode() + chunk
             self.lora.send(packet)
-            time.sleep(0.1)  # Small delay between chunks
+            time.sleep(0.5)  # Small delay between sending chunks
+
+        # Send end-of-file marker
         self.lora.send(b'END_OF_FILE')
+        print("Data sent.")
 
     def receive_data(self, timeout=300, save_path=None):
         print("Waiting to receive data...")
         start_time = time.time()
         received_data = bytearray()
         header_received = False
-        chunks_expected = 0
-        chunks_received = {}
+        num_chunks = 0
+        received_chunks = []
         filename = ""
+        file_size = 0
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
                 data = self.lora.ser.read(self.lora.ser.in_waiting)
-                received_data += data
                 print(f"Received data chunk: {data}")
 
                 if not header_received:
-                    if b'\n' in received_data:
-                        header, received_data = received_data.split(b'\n', 1)
+                    if b'\n' in data:
+                        header, data = data.split(b'\n', 1)
                         header = header.decode()
-                        if "FILENAME:" in header and "CHUNKS:" in header:
+                        if "FILENAME:" in header and "SIZE:" in header and "CHUNKS:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
-                            chunks_expected = int(header.split("CHUNKS:")[1])
-                            print(f"Receiving file: {filename} with {chunks_expected} chunks")
+                            file_size = int(header.split("SIZE:")[1].split(",")[0])
+                            num_chunks = int(header.split("CHUNKS:")[1])
+                            received_chunks = [None] * num_chunks
+                            print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
 
-                if header_received and b'END_OF_FILE' in received_data:
-                    print("End of transmission detected.")
-                    received_data = received_data.split(b'END_OF_FILE')[0]
-                    break
+                if header_received:
+                    if b'END_OF_FILE' in data:
+                        print("End of transmission detected.")
+                        break
 
-                if header_received and b'\n' in received_data:
-                    while b'\n' in received_data:
-                        packet, received_data = received_data.split(b'\n', 1)
-                        packet = packet.decode()
-                        if "SEQ:" in packet:
-                            seq_num = int(packet.split("SEQ:")[1])
-                            chunks_received[seq_num] = received_data[:chunk_size]
-                            received_data = received_data[chunk_size:]
+                    if b'\n' in data:
+                        seq_info, chunk = data.split(b'\n', 1)
+                        seq_info = seq_info.decode()
+                        if "SEQ:" in seq_info:
+                            seq_num = int(seq_info.split("SEQ:")[1].split("/")[0]) - 1
+                            if 0 <= seq_num < num_chunks:
+                                received_chunks[seq_num] = chunk
 
             time.sleep(0.1)
 
-        if len(chunks_received) == chunks_expected:
-            full_data = bytearray()
-            for i in range(1, chunks_expected + 1):
-                full_data += chunks_received[i]
+        received_data = b''.join(filter(None, received_chunks))
 
-            if save_path:
-                with open(save_path, 'wb') as file:
-                    file.write(full_data)
-                    print(f"Data successfully saved to '{save_path}'")
-            else:
-                save_path = f'/home/images/{filename}'
-                with open(save_path, 'wb') as file:
-                    file.write(full_data)
-                    print(f"Data successfully saved to '{save_path}'")
+        if save_path:
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
         else:
-            print("Timeout reached without detecting end of transmission or missing chunks.")
+            save_path = f'/home/images/{filename}'
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
+
+        if not received_data:
+            print("Timeout reached without detecting end of transmission or incomplete data received.")
 
         return bytes(received_data)
