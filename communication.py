@@ -22,23 +22,8 @@ class LoRaComm:
     def send_data(self, data, filename):
         print("Attempting to send data...")
         file_size = len(data)
-        chunk_size = 240  # Define chunk size
-        file_hash = hashlib.md5(data).hexdigest()
-        header = f"FILENAME:{filename},SIZE:{file_size},HASH:{file_hash}\n".encode('utf-8')
-        
-        # Send the header
-        self.lora.send(header)
-        print(f"Sent header: {header}")
-
-        # Split data into chunks and send each chunk
-        for i in range(0, len(data), chunk_size):
-            chunk = data[i:i + chunk_size]
-            self.lora.send(chunk)
-            print(f"Sent chunk: {chunk}")
-            time.sleep(0.1)  # Small delay between chunks
-
-        # Send end marker
-        self.lora.send(b'END_OF_FILE')
+        header = f"FILENAME:{filename},SIZE:{file_size}\n".encode('utf-8')
+        self.lora.send(header + data + b'END_OF_FILE')
         print("Data sent.")
 
     def receive_data(self, timeout=300, save_path=None):
@@ -48,7 +33,6 @@ class LoRaComm:
         header_received = False
         file_size = 0
         filename = ""
-        expected_hash = ""
         transmission_ended = False
 
         while time.time() - start_time < timeout:
@@ -61,12 +45,11 @@ class LoRaComm:
                     if b'\n' in received_data:
                         header, received_data = received_data.split(b'\n', 1)
                         header = header.decode('utf-8')
-                        if "FILENAME:" in header and "SIZE:" in header and "HASH:" in header:
+                        if "FILENAME:" in header and "SIZE:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
-                            file_size = int(header.split("SIZE:")[1].split(",")[0])
-                            expected_hash = header.split("HASH:")[1]
-                            print(f"Receiving file: {filename} of size {file_size} bytes with hash {expected_hash}")
+                            file_size = int(header.split("SIZE:")[1])
+                            print(f"Receiving file: {filename} of size {file_size} bytes")
 
                 if header_received and b'END_OF_FILE' in received_data:
                     received_data = received_data.split(b'END_OF_FILE')[0]
@@ -76,19 +59,31 @@ class LoRaComm:
 
             time.sleep(0.1)
 
-        # Remove any \r\n characters
-        received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')
+        if transmission_ended and save_path:
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
+        elif transmission_ended:
+            save_path = f'/home/images/{filename}'
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
 
-        if transmission_ended:
-            received_hash = hashlib.md5(received_data).hexdigest()
-            if received_hash == expected_hash:
-                save_path = save_path if save_path else f'/home/images/{filename}'
-                with open(save_path, 'wb') as file:
-                    file.write(received_data)
-                    print(f"Data successfully saved to '{save_path}'")
-            else:
-                print("File hash mismatch. Transmission error detected.")
-        else:
+        if not transmission_ended:
             print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)
+
+    def verify_file_integrity(self, original_file_path, received_file_path):
+        with open(original_file_path, 'rb') as original_file:
+            original_data = original_file.read()
+        with open(received_file_path, 'rb') as received_file:
+            received_data = received_file.read()
+
+        original_hash = hashlib.md5(original_data).hexdigest()
+        received_hash = hashlib.md5(received_data).hexdigest()
+
+        print(f"Original file hash: {original_hash}")
+        print(f"Received file hash: {received_hash}")
+
+        return original_hash == received_hash
