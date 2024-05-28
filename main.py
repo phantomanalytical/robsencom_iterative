@@ -52,8 +52,8 @@ def main():
     print("Starting main function...")
     try:
         address = int(user_input("Enter the LoRa address: "))
-        net_id = int(user_input("Enter the network ID: "))
-        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=net_id)
+        network_id = int(user_input("Enter the network ID: "))
+        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=network_id)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
@@ -67,7 +67,7 @@ def main():
                     results = iterative_test(lora_comm, file_path, 'power', power_settings)
                     save_results(results, 'power')
                 elif setting_type == 's':
-                    spreading_factors = [7, 8, 9, 10, 11, 12]  # Example spreading factor values
+                    spreading_factors = [7, 8, 9, 10, 11, 12]
                     results = iterative_test(lora_comm, file_path, 'spreading_factor', spreading_factors)
                     save_results(results, 'spreading_factor')
                 elif setting_type == 'c':

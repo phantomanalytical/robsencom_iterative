@@ -76,6 +76,9 @@ class LoRaComm:
 
             time.sleep(0.1)
 
+        # Remove any \r\n characters
+        received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')
+
         if transmission_ended:
             received_hash = hashlib.md5(received_data).hexdigest()
             if received_hash == expected_hash:
