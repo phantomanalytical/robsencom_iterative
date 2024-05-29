@@ -32,6 +32,12 @@ class sx126x:
     def set_coding_rate(self, cr):
         self.ser.write(f'AT+CR={cr}\r\n'.encode())
 
+    def set_network_id(self, net_id):
+        self.ser.write(f'AT+NETID={net_id}\r\n'.encode())
+
+    def set_address(self, address):
+        self.ser.write(f'AT+ADDR={address}\r\n'.encode())
+
     def send(self, data):
         self.ser.write(data + b'\r\n')  # Send data followed by a new line
         time.sleep(1)  # Allow some time for data to be sent
@@ -46,9 +52,6 @@ class sx126x:
                 data = self.ser.read(self.ser.in_waiting)
                 received_data += data
             time.sleep(0.1)
-        print("Timeout reached without receiving complete data.")
+        if not received_data:
+            print("Timeout reached without receiving complete data.")
         return bytes(received_data)
-
-# You can use this class by specifying the serial number like so:
-# device = sx126x('/dev/ttyACM0')
-# Then use the device object to send and receive data.
