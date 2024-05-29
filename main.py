@@ -3,6 +3,8 @@ import os
 import time
 from communication import LoRaComm
 
+chunk_size = 240  # Define the chunk size
+
 def user_input(prompt, options=None):
     """ Helper function to handle user input and validate it against provided options. """
     user_choice = input(prompt)
@@ -35,7 +37,7 @@ def iterative_test(lora_comm, file_path, setting_type, values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
-        time.sleep(5)  # Pause for 5 seconds between transmissions
+        time.sleep(5)  # Add a delay between each test
     return results
 
 def save_results(results, setting_type):
