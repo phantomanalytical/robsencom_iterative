@@ -22,16 +22,18 @@ class LoRaComm:
     def send_data(self, data, filename):
         print("Attempting to send data...")
         file_size = len(data)
-        file_hash = hashlib.sha256(data).hexdigest()
-        header = f"FILENAME:{filename},SIZE:{file_size},HASH:{file_hash}\n".encode()
         chunk_size = 240
+        num_chunks = (file_size + chunk_size - 1) // chunk_size
+        header = f"FILENAME:{filename},SIZE:{file_size},CHUNKS:{num_chunks}\n".encode()
+        self.lora.send(header)
 
-        num_chunks = (file_size // chunk_size) + (1 if file_size % chunk_size != 0 else 0)
         for i in range(num_chunks):
-            chunk = data[i*chunk_size:(i+1)*chunk_size]
-            sequence_number = f"{i}/{num_chunks-1}".encode()
-            self.lora.send(header + sequence_number + b':' + chunk + b'END_OF_FILE')
-            time.sleep(1)  # Short delay between sending chunks
+            chunk_data = data[i * chunk_size: (i + 1) * chunk_size]
+            chunk_header = f"CHUNK:{i + 1}/{num_chunks}\n".encode()
+            self.lora.send(chunk_header + chunk_data)
+            time.sleep(0.1)  # Short delay between chunks to prevent buffer overrun
+
+        self.lora.send(b'END_OF_FILE')
         print("Data sent.")
 
     def receive_data(self, timeout=300, save_path=None):
@@ -40,11 +42,10 @@ class LoRaComm:
         received_data = bytearray()
         header_received = False
         file_size = 0
-        file_hash = ""
+        num_chunks = 0
         filename = ""
+        chunk_map = []
         transmission_ended = False
-        total_received_size = 0
-        chunks = {}
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
@@ -55,50 +56,43 @@ class LoRaComm:
                     if b'\n' in data:
                         header, data = data.split(b'\n', 1)
                         header = header.decode()
-                        if "FILENAME:" in header and "SIZE:" in header and "HASH:" in header:
+                        if "FILENAME:" in header and "SIZE:" in header and "CHUNKS:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
                             file_size = int(header.split("SIZE:")[1].split(",")[0])
-                            file_hash = header.split("HASH:")[1]
-                            print(f"Receiving file: {filename} of size {file_size} bytes with hash {file_hash}")
+                            num_chunks = int(header.split("CHUNKS:")[1])
+                            chunk_map = [False] * num_chunks
+                            print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
+                if header_received and b'END_OF_FILE' in data:
+                    transmission_ended = True
+                    print("End of transmission detected.")
+                    break
 
                 if header_received:
-                    sequence_number, chunk = data.split(b':', 1)
-                    sequence_number = sequence_number.decode().split('/')
-                    chunk_index = int(sequence_number[0])
-                    total_chunks = int(sequence_number[1])
-                    chunks[chunk_index] = chunk
+                    while b'CHUNK:' in data:
+                        chunk_header, data = data.split(b'\n', 1)
+                        chunk_header = chunk_header.decode()
+                        chunk_num = int(chunk_header.split("CHUNK:")[1].split("/")[0]) - 1
+                        chunk_map[chunk_num] = True
+                        received_data.extend(data[:chunk_size])
+                        data = data[chunk_size:]
 
-                    if b'END_OF_FILE' in chunk:
-                        chunk = chunk.replace(b'END_OF_FILE', b'')
-                        transmission_ended = True
-                        print("End of transmission detected.")
-                        break
-
-                    if len(chunks) == (total_chunks + 1):
-                        transmission_ended = True
-                        print("All chunks received.")
-                        break
-
+            if transmission_ended:
+                break
             time.sleep(0.1)
 
-        if transmission_ended:
-            received_data = b''.join([chunks[i] for i in sorted(chunks)])
-            calculated_hash = hashlib.sha256(received_data).hexdigest()
-            if calculated_hash == file_hash:
-                if save_path:
-                    with open(save_path, 'wb') as file:
-                        file.write(received_data)
-                        print(f"Data successfully saved to '{save_path}'")
-                else:
-                    save_path = f'/home/images/{filename}'
-                    with open(save_path, 'wb') as file:
-                        file.write(received_data)
-                        print(f"Data successfully saved to '{save_path}'")
-                print("File hash validation successful.")
-            else:
-                print("File hash validation failed.")
-        else:
+        if transmission_ended and save_path:
+            received_data = received_data[:file_size]  # Trim any extra data beyond the expected file size
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
+        elif transmission_ended:
+            save_path = f'/home/images/{filename}'
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
+
+        if not transmission_ended:
             print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)

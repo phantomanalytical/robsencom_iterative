@@ -35,7 +35,7 @@ def iterative_test(lora_comm, file_path, setting_type, values):
         latency = perform_transmission(lora_comm, setting_type, value, file_path)
         results.append([value, latency])
         print(f"Tested {setting_type} {value} with latency {latency} seconds.")
-        time.sleep(5)  # Delay between iterations
+        time.sleep(5)  # Pause for 5 seconds between transmissions
     return results
 
 def save_results(results, setting_type):
