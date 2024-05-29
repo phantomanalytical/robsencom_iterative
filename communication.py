@@ -6,6 +6,7 @@ class LoRaComm:
     def __init__(self, address=36, serial_num='/dev/ttyACM0', net_id=0):
         self.lora = sx126x(serial_num=serial_num, net_id=net_id)
         self.lora.set_address(address)
+        self.chunk_size = 240  # Define the chunk size
 
     def update_settings(self, power=None, spreading_factor=None, coding_rate=None, address=None, network_id=None):
         if power is not None:
@@ -22,16 +23,12 @@ class LoRaComm:
     def send_data(self, data, filename):
         print("Attempting to send data...")
         file_size = len(data)
-        chunk_size = 240
-        num_chunks = (file_size + chunk_size - 1) // chunk_size
-        header = f"FILENAME:{filename},SIZE:{file_size},CHUNKS:{num_chunks}\n".encode()
+        header = f"FILENAME:{filename},SIZE:{file_size}\n".encode('utf-8')
         self.lora.send(header)
 
-        for i in range(num_chunks):
-            chunk_data = data[i * chunk_size: (i + 1) * chunk_size]
-            chunk_header = f"CHUNK:{i + 1}/{num_chunks}\n".encode()
-            self.lora.send(chunk_header + chunk_data)
-            time.sleep(0.1)  # Short delay between chunks to prevent buffer overrun
+        for i in range(0, len(data), self.chunk_size):
+            chunk = data[i:i + self.chunk_size]
+            self.lora.send(chunk)
 
         self.lora.send(b'END_OF_FILE')
         print("Data sent.")
@@ -42,47 +39,34 @@ class LoRaComm:
         received_data = bytearray()
         header_received = False
         file_size = 0
-        num_chunks = 0
         filename = ""
-        chunk_map = []
         transmission_ended = False
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
                 data = self.lora.ser.read(self.lora.ser.in_waiting)
+                received_data += data
                 print(f"Received data chunk: {data}")
 
                 if not header_received:
-                    if b'\n' in data:
-                        header, data = data.split(b'\n', 1)
-                        header = header.decode()
-                        if "FILENAME:" in header and "SIZE:" in header and "CHUNKS:" in header:
+                    if b'\n' in received_data:
+                        header, received_data = received_data.split(b'\n', 1)
+                        header = header.decode('utf-8')
+                        if "FILENAME:" in header and "SIZE:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
-                            file_size = int(header.split("SIZE:")[1].split(",")[0])
-                            num_chunks = int(header.split("CHUNKS:")[1])
-                            chunk_map = [False] * num_chunks
-                            print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
-                if header_received and b'END_OF_FILE' in data:
+                            file_size = int(header.split("SIZE:")[1])
+                            print(f"Receiving file: {filename} of size {file_size} bytes")
+
+                if header_received and b'END_OF_FILE' in received_data:
+                    received_data = received_data.split(b'END_OF_FILE')[0]
                     transmission_ended = True
                     print("End of transmission detected.")
                     break
 
-                if header_received:
-                    while b'CHUNK:' in data:
-                        chunk_header, data = data.split(b'\n', 1)
-                        chunk_header = chunk_header.decode()
-                        chunk_num = int(chunk_header.split("CHUNK:")[1].split("/")[0]) - 1
-                        chunk_map[chunk_num] = True
-                        received_data.extend(data[:chunk_size])
-                        data = data[chunk_size:]
-
-            if transmission_ended:
-                break
             time.sleep(0.1)
 
         if transmission_ended and save_path:
-            received_data = received_data[:file_size]  # Trim any extra data beyond the expected file size
             with open(save_path, 'wb') as file:
                 file.write(received_data)
                 print(f"Data successfully saved to '{save_path}'")
@@ -96,3 +80,8 @@ class LoRaComm:
             print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)
+
+    def validate_file(self, original_data, received_data):
+        original_hash = hashlib.md5(original_data).hexdigest()
+        received_hash = hashlib.md5(received_data).hexdigest()
+        return original_hash == received_hash
