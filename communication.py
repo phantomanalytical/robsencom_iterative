@@ -27,7 +27,7 @@ class LoRaComm:
         for i in range(num_chunks):
             chunk = data[i * chunk_size:(i + 1) * chunk_size]
             sequence_number = i.to_bytes(4, byteorder='big')
-            self.lora.send(sequence_number + chunk)  # Add sequence number to the chunk
+            self.lora.send(sequence_number + chunk)
             time.sleep(0.1)  # Small delay to allow the receiver to process chunks
         self.lora.send(b'END_OF_FILE')
         print("Data sent.")
@@ -63,10 +63,10 @@ class LoRaComm:
 
                 if header_received and len(data) > 4:
                     try:
-                        sequence_number = int.from_bytes(data[:4], byteorder='big')  # Extract sequence number
-                        if sequence_number < num_chunks:  # Ensure sequence number is within range
-                            chunk_data = data[4:]  # Extract actual chunk data
-                            chunks[sequence_number] = chunk_data  # Store chunk in its correct position
+                        sequence_number = int.from_bytes(data[:4], byteorder='big')
+                        if sequence_number < num_chunks:
+                            chunk_data = data[4:]
+                            chunks[sequence_number] = chunk_data
                             if b'END_OF_FILE' in received_data:
                                 transmission_ended = True
                                 print("End of transmission detected.")
@@ -78,7 +78,7 @@ class LoRaComm:
 
         if transmission_ended:
             received_data = b''.join(chunks)
-            received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')  # Remove new lines
+            received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')
             if save_path:
                 with open(save_path, 'wb') as file:
                     file.write(received_data)
@@ -89,7 +89,6 @@ class LoRaComm:
                     file.write(received_data)
                     print(f"Data successfully saved to '{save_path}'")
 
-            # Verify file size
             if len(received_data) == file_size:
                 print("File received successfully and file size matches.")
             else:
