@@ -26,8 +26,8 @@ class LoRaComm:
         self.lora.send(header)
         for i in range(num_chunks):
             chunk = data[i * chunk_size:(i + 1) * chunk_size]
-            chunk = f"{i:06d}".encode('utf-8') + chunk  # Add sequence number to the chunk
-            self.lora.send(chunk)
+            sequence_number = f"{i:06d}".encode('utf-8')
+            self.lora.send(sequence_number + chunk)  # Add sequence number to the chunk
             time.sleep(0.1)  # Small delay to allow the receiver to process chunks
         self.lora.send(b'END_OF_FILE')
         print("Data sent.")
@@ -62,13 +62,16 @@ class LoRaComm:
                             chunks = [b''] * num_chunks
 
                 if header_received:
-                    sequence_number = int(data[:6].decode('utf-8'))  # Extract sequence number
-                    chunk_data = data[6:]  # Extract actual chunk data
-                    chunks[sequence_number] = chunk_data  # Store chunk in its correct position
-                    if b'END_OF_FILE' in received_data:
-                        transmission_ended = True
-                        print("End of transmission detected.")
-                        break
+                    try:
+                        sequence_number = int(data[:6].decode('utf-8'))  # Extract sequence number
+                        chunk_data = data[6:]  # Extract actual chunk data
+                        chunks[sequence_number] = chunk_data  # Store chunk in its correct position
+                        if b'END_OF_FILE' in received_data:
+                            transmission_ended = True
+                            print("End of transmission detected.")
+                            break
+                    except ValueError as e:
+                        print(f"Error decoding sequence number: {e}")
 
             time.sleep(0.1)
 
