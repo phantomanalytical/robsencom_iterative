@@ -61,15 +61,16 @@ class LoRaComm:
                             print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
                             chunks = [b''] * num_chunks
 
-                if header_received:
+                if header_received and len(data) > 4:
                     try:
                         sequence_number = int.from_bytes(data[:4], byteorder='big')  # Extract sequence number
-                        chunk_data = data[4:]  # Extract actual chunk data
-                        chunks[sequence_number] = chunk_data  # Store chunk in its correct position
-                        if b'END_OF_FILE' in received_data:
-                            transmission_ended = True
-                            print("End of transmission detected.")
-                            break
+                        if sequence_number < num_chunks:  # Ensure sequence number is within range
+                            chunk_data = data[4:]  # Extract actual chunk data
+                            chunks[sequence_number] = chunk_data  # Store chunk in its correct position
+                            if b'END_OF_FILE' in received_data:
+                                transmission_ended = True
+                                print("End of transmission detected.")
+                                break
                     except ValueError as e:
                         print(f"Error decoding sequence number: {e}")
 
