@@ -68,7 +68,7 @@ class LoRaComm:
                         if sequence_number < num_chunks:
                             chunk_data = data[4:]
                             chunks[sequence_number] = chunk_data
-                            if b'END_OF_FILE' in received_data:
+                            if b'END_OF_FILE' in chunk_data:
                                 transmission_ended = True
                                 print("End of transmission detected.")
                                 break
@@ -79,16 +79,26 @@ class LoRaComm:
 
         if transmission_ended:
             received_data = b''.join(chunks)
+            # Remove any extraneous 'END_OF_FILE' data from the end
+            if received_data.endswith(b'END_OF_FILE'):
+                received_data = received_data[:-len(b'END_OF_FILE')]
             received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')
+
             if save_path:
-                with open(save_path, 'wb') as file:
-                    file.write(received_data)
-                    print(f"Data successfully saved to '{save_path}'")
+                try:
+                    with open(save_path, 'wb') as file:
+                        file.write(received_data)
+                        print(f"Data successfully saved to '{save_path}'")
+                except IOError as e:
+                    print(f"Failed to save data to '{save_path}': {e}")
             else:
                 save_path = f'/home/images/{filename}'
-                with open(save_path, 'wb') as file:
-                    file.write(received_data)
-                    print(f"Data successfully saved to '{save_path}'")
+                try:
+                    with open(save_path, 'wb') as file:
+                        file.write(received_data)
+                        print(f"Data successfully saved to '{save_path}'")
+                except IOError as e:
+                    print(f"Failed to save data to '{save_path}': {e}")
 
             if len(received_data) == file_size:
                 print("File received successfully and file size matches.")
