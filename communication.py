@@ -26,6 +26,7 @@ class LoRaComm:
         self.lora.send(header)
         for i in range(num_chunks):
             chunk = data[i * chunk_size:(i + 1) * chunk_size]
+            chunk = f"{i:06d}".encode('utf-8') + chunk  # Add sequence number to the chunk
             self.lora.send(chunk)
             time.sleep(0.1)  # Small delay to allow the receiver to process chunks
         self.lora.send(b'END_OF_FILE')
@@ -40,7 +41,7 @@ class LoRaComm:
         num_chunks = 0
         filename = ""
         transmission_ended = False
-        chunks_received = 0
+        chunks = []
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
@@ -58,12 +59,13 @@ class LoRaComm:
                             file_size = int(header.split("SIZE:")[1].split(",")[0])
                             num_chunks = int(header.split("CHUNKS:")[1])
                             print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
+                            chunks = [b''] * num_chunks
 
                 if header_received:
-                    received_data += data
-                    chunks_received += 1
+                    sequence_number = int(data[:6].decode('utf-8'))  # Extract sequence number
+                    chunk_data = data[6:]  # Extract actual chunk data
+                    chunks[sequence_number] = chunk_data  # Store chunk in its correct position
                     if b'END_OF_FILE' in received_data:
-                        received_data = received_data.split(b'END_OF_FILE')[0]
                         transmission_ended = True
                         print("End of transmission detected.")
                         break
@@ -71,6 +73,7 @@ class LoRaComm:
             time.sleep(0.1)
 
         if transmission_ended:
+            received_data = b''.join(chunks)
             received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')  # Remove new lines
             if save_path:
                 with open(save_path, 'wb') as file:
