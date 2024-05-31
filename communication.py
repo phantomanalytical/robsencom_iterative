@@ -1,5 +1,6 @@
 from sx126x import sx126x
 import time
+import os
 
 class LoRaComm:
     def __init__(self, address=36, serial_num='/dev/ttyACM0', net_id=0):
@@ -92,7 +93,7 @@ class LoRaComm:
             if len(received_data) == file_size:
                 print("File received successfully and file size matches.")
             else:
-                print("File size mismatch.")
+                print(f"File size mismatch. Expected {file_size}, got {len(received_data)}")
         else:
             print("Timeout reached without detecting end of transmission.")
 
