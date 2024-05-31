@@ -22,11 +22,11 @@ class LoRaComm:
         print("Attempting to send data...")
         chunk_size = 240
         num_chunks = len(data) // chunk_size + (1 if len(data) % chunk_size != 0 else 0)
-        header = f"FILENAME:{filename},SIZE:{len(data)},CHUNKS:{num_chunks}\n".encode('utf-8')
+        header = f"FILENAME:{filename},SIZE:{len(data)},CHUNKS:{num_chunks}\n".encode()
         self.lora.send(header)
         for i in range(num_chunks):
             chunk = data[i * chunk_size:(i + 1) * chunk_size]
-            sequence_number = f"{i:06d}".encode('utf-8')
+            sequence_number = f"{i:06d}".encode()
             self.lora.send(sequence_number + chunk)  # Add sequence number to the chunk
             time.sleep(0.1)  # Small delay to allow the receiver to process chunks
         self.lora.send(b'END_OF_FILE')
@@ -52,7 +52,7 @@ class LoRaComm:
                     received_data += data
                     if b'\n' in received_data:
                         header, received_data = received_data.split(b'\n', 1)
-                        header = header.decode('utf-8')
+                        header = header.decode()
                         if "FILENAME:" in header and "SIZE:" in header and "CHUNKS:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
@@ -63,7 +63,7 @@ class LoRaComm:
 
                 if header_received:
                     try:
-                        sequence_number = int(data[:6].decode('utf-8'))  # Extract sequence number
+                        sequence_number = int(data[:6].decode())  # Extract sequence number
                         chunk_data = data[6:]  # Extract actual chunk data
                         chunks[sequence_number] = chunk_data  # Store chunk in its correct position
                         if b'END_OF_FILE' in received_data:
