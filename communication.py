@@ -28,7 +28,7 @@ class LoRaComm:
         for i in range(num_chunks):
             chunk = data[i * chunk_size:(i + 1) * chunk_size]
             sequence_number = i.to_bytes(4, byteorder='big')
-            self.lora.send(sequence_number + chunk)
+            self.lora.send(sequence_number + chunk.hex().encode())  # Send chunk in hex format
             time.sleep(0.1)  # Small delay to allow the receiver to process chunks
         self.lora.send(b'END_OF_FILE')
         print("Data sent.")
@@ -66,7 +66,7 @@ class LoRaComm:
                     try:
                         sequence_number = int.from_bytes(data[:4], byteorder='big')
                         if sequence_number < num_chunks:
-                            chunk_data = data[4:]
+                            chunk_data = bytes.fromhex(data[4:].decode())  # Convert hex to binary
                             chunks[sequence_number] = chunk_data
                             if b'END_OF_FILE' in chunk_data:
                                 transmission_ended = True
@@ -79,7 +79,6 @@ class LoRaComm:
 
         if transmission_ended:
             received_data = b''.join(chunks)
-            # Remove any extraneous 'END_OF_FILE' data from the end
             if received_data.endswith(b'END_OF_FILE'):
                 received_data = received_data[:-len(b'END_OF_FILE')]
             received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')
