@@ -13,6 +13,8 @@ class sx126x:
         self.ser.write(b'AT+EXIT\r\n')  # Ensure it's not in AT command mode
         self.ser.write(b'+++\r\n')  # Enter AT command mode
         time.sleep(1)  # Wait for the module to respond
+        self.ser.write(b'AT+MODE=2\r\n')  # Set to packet mode
+        time.sleep(0.1)
         self.set_frequency(65)  # Set frequency to 915 MHz for both TX and RX
         self.set_power(22)  # Set the power to maximum
         self.set_spreading_factor(7)  # Set the default spreading factor
