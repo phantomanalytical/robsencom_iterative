@@ -86,7 +86,6 @@ def main():
                     results = iterative_test(lora_comm, file_path, 'coding_rate', coding_rates)
                     save_results(results, 'coding_rate')
         elif choice == 'receive':
-            lora_comm.lora.set_receive_mode()  # Set the device to receive mode
             print("Device set to receive mode.")
             setting_type = user_input("Enter setting type for received files (e.g., 'power', 'spreading_factor', 'coding_rate'): ")
             settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}

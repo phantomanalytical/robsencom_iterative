@@ -107,12 +107,3 @@ class LoRaComm:
             print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)
-
-    def set_receive_mode(self):
-        self.lora.ser.write(b'+++\r\n')  # Enter AT command mode
-        time.sleep(1)  # Wait for the module to respond
-        self.lora.ser.write(b'AT+RX\r\n')  # Set to receive mode
-        time.sleep(0.5)
-        self.lora.ser.write(b'AT+EXIT\r\n')  # Exit AT command mode
-        time.sleep(0.5)
-        print("Module set to receive mode.")

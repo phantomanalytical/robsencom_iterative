@@ -74,12 +74,3 @@ class sx126x:
         if not received_data:
             print("Timeout reached without receiving complete data.")
         return bytes(received_data)
-
-    def set_receive_mode(self):
-        self.ser.write(b'+++\r\n')  # Enter AT command mode
-        time.sleep(1)  # Wait for the module to respond
-        self.ser.write(b'AT+RX\r\n')  # Set to receive mode
-        time.sleep(0.5)
-        self.ser.write(b'AT+EXIT\r\n')  # Exit AT command mode
-        time.sleep(0.5)
-        print("Module set to receive mode.")
