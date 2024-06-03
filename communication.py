@@ -66,14 +66,13 @@ class LoRaComm:
                     try:
                         sequence_number = int.from_bytes(data[:4], byteorder='big')
                         if sequence_number < num_chunks:
-                            chunk_hex = data[4:].decode('latin1')  # Decode as 'latin1' to keep the byte values
-                            chunk_data = bytes.fromhex(chunk_hex)  # Convert hex to binary
+                            chunk_data = bytes.fromhex(data[4:].decode('latin1'))  # Convert hex to binary
                             chunks[sequence_number] = chunk_data
                             if b'END_OF_FILE' in chunk_data:
                                 transmission_ended = True
                                 print("End of transmission detected.")
                                 break
-                    except (ValueError, UnicodeDecodeError) as e:
+                    except ValueError as e:
                         print(f"Error decoding sequence number or chunk data: {e}")
 
             time.sleep(0.1)
