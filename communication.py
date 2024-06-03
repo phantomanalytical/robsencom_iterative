@@ -1,6 +1,5 @@
 from sx126x import sx126x
 import time
-import os
 
 class LoRaComm:
     def __init__(self, address=36, serial_num='/dev/ttyACM0', net_id=0):
@@ -27,8 +26,8 @@ class LoRaComm:
         self.lora.send(header)
         for i in range(num_chunks):
             chunk = data[i * chunk_size:(i + 1) * chunk_size]
-            sequence_number = i.to_bytes(4, byteorder='big')
-            self.lora.send(sequence_number + chunk.hex().encode())  # Send chunk in hex format
+            chunk = f"{i:06d}".encode('utf-8') + chunk  # Add sequence number to the chunk
+            self.lora.send(chunk)
             time.sleep(0.1)  # Small delay to allow the receiver to process chunks
         self.lora.send(b'END_OF_FILE')
         print("Data sent.")
@@ -62,47 +61,35 @@ class LoRaComm:
                             print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
                             chunks = [b''] * num_chunks
 
-                if header_received and len(data) > 4:
-                    try:
-                        sequence_number = int.from_bytes(data[:4], byteorder='big')
-                        if sequence_number < num_chunks:
-                            chunk_data = bytes.fromhex(data[4:].decode())  # Convert hex to binary
-                            chunks[sequence_number] = chunk_data
-                            if b'END_OF_FILE' in chunk_data:
-                                transmission_ended = True
-                                print("End of transmission detected.")
-                                break
-                    except ValueError as e:
-                        print(f"Error decoding sequence number: {e}")
+                if header_received:
+                    sequence_number = int(data[:6].decode('utf-8'))  # Extract sequence number
+                    chunk_data = data[6:]  # Extract actual chunk data
+                    chunks[sequence_number] = chunk_data  # Store chunk in its correct position
+                    if b'END_OF_FILE' in received_data:
+                        transmission_ended = True
+                        print("End of transmission detected.")
+                        break
 
             time.sleep(0.1)
 
         if transmission_ended:
             received_data = b''.join(chunks)
-            if received_data.endswith(b'END_OF_FILE'):
-                received_data = received_data[:-len(b'END_OF_FILE')]
-            received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')
-
+            received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')  # Remove new lines
             if save_path:
-                try:
-                    with open(save_path, 'wb') as file:
-                        file.write(received_data)
-                        print(f"Data successfully saved to '{save_path}'")
-                except IOError as e:
-                    print(f"Failed to save data to '{save_path}': {e}")
+                with open(save_path, 'wb') as file:
+                    file.write(received_data)
+                    print(f"Data successfully saved to '{save_path}'")
             else:
                 save_path = f'/home/images/{filename}'
-                try:
-                    with open(save_path, 'wb') as file:
-                        file.write(received_data)
-                        print(f"Data successfully saved to '{save_path}'")
-                except IOError as e:
-                    print(f"Failed to save data to '{save_path}': {e}")
+                with open(save_path, 'wb') as file:
+                    file.write(received_data)
+                    print(f"Data successfully saved to '{save_path}'")
 
+            # Verify file size
             if len(received_data) == file_size:
                 print("File received successfully and file size matches.")
             else:
-                print(f"File size mismatch. Expected {file_size}, got {len(received_data)}")
+                print("File size mismatch.")
         else:
             print("Timeout reached without detecting end of transmission.")
 

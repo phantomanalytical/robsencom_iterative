@@ -3,20 +3,13 @@ import os
 import time
 from communication import LoRaComm
 
-def user_input(prompt, options=None, numeric=False):
+def user_input(prompt, options=None):
     """ Helper function to handle user input and validate it against provided options. """
-    while True:
+    user_choice = input(prompt)
+    while options and user_choice.lower().strip() not in options:
+        print("Invalid option. Please try again.")
         user_choice = input(prompt)
-        if numeric:
-            try:
-                return int(user_choice)
-            except ValueError:
-                print("Invalid input. Please enter a numeric value.")
-                continue
-        if options and user_choice.lower().strip() not in options:
-            print("Invalid option. Please try again.")
-            continue
-        return user_choice
+    return user_choice
 
 def perform_transmission(lora_comm, setting_type, setting_value, file_path):
     """ Send an image file with specific settings and measure latency. """
@@ -58,17 +51,13 @@ def save_results(results, setting_type):
 def main():
     print("Starting main function...")
     try:
-        address = user_input("Enter the LoRa address: ", numeric=True)
-        network_id = user_input("Enter the network ID: ", numeric=True)
+        address = int(user_input("Enter the LoRa address: "))
+        network_id = int(user_input("Enter the network ID: "))
         lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=network_id)
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':
             file_path = user_input("Enter the path to the image file: ")
-            if not os.path.isfile(file_path):
-                print("Invalid file path. Please try again.")
-                return
-
             while True:
                 setting_type = user_input("Choose setting to iterate (p for power, s for spreading factor, c for coding rate, q to quit): ", ['p', 's', 'c', 'q'])
                 if setting_type == 'q':
@@ -90,7 +79,7 @@ def main():
             setting_type = user_input("Enter setting type for received files (e.g., 'power', 'spreading_factor', 'coding_rate'): ")
             settings_count = {'power': 4, 'spreading_factor': 6, 'coding_rate': 4}
             i = 0
-            while i < settings_count.get(setting_type, 0):
+            while i < settings_count[setting_type]:
                 save_file_path = f'/home/images/image_{setting_type}_{i+1}.png'
                 data = lora_comm.receive_data(save_path=save_file_path)
                 if data:
