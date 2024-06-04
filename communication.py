@@ -1,10 +1,12 @@
 from sx126x import sx126x
 import time
+import hashlib
 
 class LoRaComm:
     def __init__(self, address=36, serial_num='/dev/ttyACM0', net_id=0):
         self.lora = sx126x(serial_num=serial_num, net_id=net_id)
         self.lora.set_address(address)
+        self.chunk_size = 240  # Define the chunk size
 
     def update_settings(self, power=None, spreading_factor=None, coding_rate=None, address=None, network_id=None):
         if power is not None:
@@ -20,15 +22,14 @@ class LoRaComm:
 
     def send_data(self, data, filename):
         print("Attempting to send data...")
-        chunk_size = 240
-        num_chunks = len(data) // chunk_size + (1 if len(data) % chunk_size != 0 else 0)
-        header = f"FILENAME:{filename},SIZE:{len(data)},CHUNKS:{num_chunks}\n".encode('utf-8')
+        file_size = len(data)
+        header = f"FILENAME:{filename},SIZE:{file_size}\n".encode('utf-8')
         self.lora.send(header)
-        for i in range(num_chunks):
-            chunk = data[i * chunk_size:(i + 1) * chunk_size]
-            chunk = f"{i:06d}".encode('utf-8') + chunk  # Add sequence number to the chunk
+
+        for i in range(0, len(data), self.chunk_size):
+            chunk = data[i:i + self.chunk_size]
             self.lora.send(chunk)
-            time.sleep(0.1)  # Small delay to allow the receiver to process chunks
+
         self.lora.send(b'END_OF_FILE')
         print("Data sent.")
 
@@ -38,59 +39,49 @@ class LoRaComm:
         received_data = bytearray()
         header_received = False
         file_size = 0
-        num_chunks = 0
         filename = ""
         transmission_ended = False
-        chunks = []
 
         while time.time() - start_time < timeout:
             if self.lora.ser.in_waiting:
                 data = self.lora.ser.read(self.lora.ser.in_waiting)
+                received_data += data
                 print(f"Received data chunk: {data}")
 
                 if not header_received:
-                    received_data += data
                     if b'\n' in received_data:
                         header, received_data = received_data.split(b'\n', 1)
                         header = header.decode('utf-8')
-                        if "FILENAME:" in header and "SIZE:" in header and "CHUNKS:" in header:
+                        if "FILENAME:" in header and "SIZE:" in header:
                             header_received = True
                             filename = header.split("FILENAME:")[1].split(",")[0]
-                            file_size = int(header.split("SIZE:")[1].split(",")[0])
-                            num_chunks = int(header.split("CHUNKS:")[1])
-                            print(f"Receiving file: {filename} of size {file_size} bytes in {num_chunks} chunks")
-                            chunks = [b''] * num_chunks
+                            file_size = int(header.split("SIZE:")[1])
+                            print(f"Receiving file: {filename} of size {file_size} bytes")
 
-                if header_received:
-                    sequence_number = int(data[:6].decode('utf-8'))  # Extract sequence number
-                    chunk_data = data[6:]  # Extract actual chunk data
-                    chunks[sequence_number] = chunk_data  # Store chunk in its correct position
-                    if b'END_OF_FILE' in received_data:
-                        transmission_ended = True
-                        print("End of transmission detected.")
-                        break
+                if header_received and b'END_OF_FILE' in received_data:
+                    received_data = received_data.split(b'END_OF_FILE')[0]
+                    transmission_ended = True
+                    print("End of transmission detected.")
+                    break
 
             time.sleep(0.1)
 
-        if transmission_ended:
-            received_data = b''.join(chunks)
-            received_data = received_data.replace(b'\r', b'').replace(b'\n', b'')  # Remove new lines
-            if save_path:
-                with open(save_path, 'wb') as file:
-                    file.write(received_data)
-                    print(f"Data successfully saved to '{save_path}'")
-            else:
-                save_path = f'/home/images/{filename}'
-                with open(save_path, 'wb') as file:
-                    file.write(received_data)
-                    print(f"Data successfully saved to '{save_path}'")
+        if transmission_ended and save_path:
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
+        elif transmission_ended:
+            save_path = f'/home/images/{filename}'
+            with open(save_path, 'wb') as file:
+                file.write(received_data)
+                print(f"Data successfully saved to '{save_path}'")
 
-            # Verify file size
-            if len(received_data) == file_size:
-                print("File received successfully and file size matches.")
-            else:
-                print("File size mismatch.")
-        else:
+        if not transmission_ended:
             print("Timeout reached without detecting end of transmission.")
 
         return bytes(received_data)
+
+    def validate_file(self, original_data, received_data):
+        original_hash = hashlib.md5(original_data).hexdigest()
+        received_hash = hashlib.md5(received_data).hexdigest()
+        return original_hash == received_hash

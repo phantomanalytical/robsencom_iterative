@@ -10,41 +10,37 @@ class sx126x:
         self.initialize()
 
     def initialize(self):
-        print("Initializing module...")
-        self.send_command(b'AT+EXIT\r\n')  # Ensure it's not in AT command mode
-        self.send_command(b'+++\r\n')  # Enter AT command mode
-        self.send_command(b'AT+MODE=2\r\n')  # Set to packet mode
+        self.ser.write(b'AT+EXIT\r\n')  # Ensure it's not in AT command mode
+        self.ser.write(b'+++\r\n')  # Enter AT command mode
+        time.sleep(1)  # Wait for the module to respond
         self.set_frequency(65)  # Set frequency to 915 MHz for both TX and RX
         self.set_power(22)  # Set the power to maximum
         self.set_spreading_factor(7)  # Set the default spreading factor
         self.set_coding_rate(1)  # Set the default coding rate
-        self.send_command(b'AT+EXIT\r\n')  # Exit AT command mode
-        print("Module initialized.")
-
-    def send_command(self, command):
-        self.ser.write(command)
-        time.sleep(0.5)
-        response = self.ser.read_all().decode('utf-8', errors='ignore')
-        print(f"Sent command: {command.strip().decode()}, response: {response.strip()}")
+        self.set_irq()  # Configure IRQ
+        self.ser.write(b'AT+EXIT\r\n')  # Exit AT command mode
 
     def set_frequency(self, channel):
-        self.send_command(f'AT+TXCH={channel}\r\n'.encode())
-        self.send_command(f'AT+RXCH={channel}\r\n'.encode())
+        self.ser.write(f'AT+TXCH={channel}\r\n'.encode())
+        self.ser.write(f'AT+RXCH={channel}\r\n'.encode())
 
     def set_power(self, power):
-        self.send_command(f'AT+PWR={power}\r\n'.encode())
+        self.ser.write(f'AT+PWR={power}\r\n'.encode())
 
     def set_spreading_factor(self, sf):
-        self.send_command(f'AT+SF={sf}\r\n'.encode())
+        self.ser.write(f'AT+SF={sf}\r\n'.encode())
 
     def set_coding_rate(self, cr):
-        self.send_command(f'AT+CR={cr}\r\n'.encode())
+        self.ser.write(f'AT+CR={cr}\r\n'.encode())
 
-    def set_network_id(self, net_id):
-        self.send_command(f'AT+NETID={net_id}\r\n'.encode())
+    def set_irq(self):
+        self.ser.write(b'AT+IRQ=RX_DONE\r\n')  # Set IRQ for packet reception complete
 
     def set_address(self, address):
-        self.send_command(f'AT+ADDR={address}\r\n'.encode())
+        self.ser.write(f'AT+ADDR={address}\r\n'.encode())
+
+    def set_network_id(self, net_id):
+        self.ser.write(f'AT+NETID={net_id}\r\n'.encode())
 
     def send(self, data):
         self.ser.write(data + b'\r\n')  # Send data followed by a new line
@@ -55,15 +51,23 @@ class sx126x:
         print("Receiving data...")
         start_time = time.time()
         received_data = bytearray()
-        while time.time() - start_time < timeout:
+        while time.time() - start.time < timeout:
             if self.ser.in_waiting:
                 data = self.ser.read(self.ser.in_waiting)
                 received_data += data
-                if b'END_OF_FILE' in received_data:
+                if self.check_irq():  # Check if IRQ was triggered
+                    print("Packet reception completed.")
                     break
             time.sleep(0.1)
         if not received_data:
             print("Timeout reached without receiving complete data.")
-        else:
-            print(f"Received data: {received_data}")
         return bytes(received_data)
+
+    def check_irq(self):
+        self.ser.write(b'AT+IRQ?\r\n')  # Command to check IRQ status
+        irq_status = self.ser.read(self.ser.in_waiting)
+        return b'RX_DONE' in irq_status
+
+# You can use this class by specifying the serial number like so:
+# device = sx126x('/dev/ttyACM0')
+# Then use the device object to send and receive data.
