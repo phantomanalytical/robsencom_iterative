@@ -34,7 +34,6 @@ class sx126x:
         self.send_command(b'AT+TXCH=65\r\n')  # Transmit Channel = 915 MHz
         self.send_command(b'AT+RXCH=65\r\n')  # Receive Channel = 915 MHz
         self.send_command(b'AT+RSSI=0\r\n')  # Set the RSSI to disabled
-        self.send_command(b'AT+PORT=3\r\n')  # Set Port to RS232
         self.send_command(b'AT+BAUD=115200\r\n')  # Set baudrate to 115200
         self.send_command(b'AT+COMM="8N1"\r\n')  # Set Com port parameters 8N1
         self.send_command(b'AT+KEY=0\r\n')  # Disable encryption
