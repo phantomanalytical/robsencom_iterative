@@ -58,9 +58,16 @@ def save_results(results, setting_type):
 def main():
     print("Starting main function...")
     try:
+        serial_num = '/dev/ttyACM0'
         address = user_input("Enter the LoRa address: ", numeric=True)
         network_id = user_input("Enter the network ID: ", numeric=True)
-        lora_comm = LoRaComm(address=address, serial_num='/dev/ttyACM0', net_id=network_id)
+        lora_comm = LoRaComm(address=address, serial_num=serial_num, net_id=network_id)
+
+        # Ensure the device is in AT command mode before setting address and network ID
+        lora_comm.lora.enter_at_mode()
+        lora_comm.lora.set_address(address)
+        lora_comm.lora.set_network_id(network_id)
+        lora_comm.lora.exit_at_mode()
 
         choice = user_input("Would you like to send or receive a file? (send/receive): ", ['send', 'receive'])
         if choice == 'send':

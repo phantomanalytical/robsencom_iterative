@@ -7,17 +7,13 @@ class LoRaComm:
         self.lora = sx126x(serial_num=serial_num, net_id=net_id)
         self.lora.set_address(address)
 
-    def update_settings(self, power=None, spreading_factor=None, coding_rate=None, address=None, network_id=None):
+    def update_settings(self, power=None, spreading_factor=None, coding_rate=None):
         if power is not None:
             self.lora.set_power(power)
         if spreading_factor is not None:
             self.lora.set_spreading_factor(spreading_factor)
         if coding_rate is not None:
             self.lora.set_coding_rate(coding_rate)
-        if address is not None:
-            self.lora.set_address(address)
-        if network_id is not None:
-            self.lora.set_network_id(network_id)
 
     def send_data(self, data, filename):
         print("Attempting to send data...")
